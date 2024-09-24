@@ -1,0 +1,14 @@
+[workspace]
+resolver = "2"
+members = [
+    "applications",
+    "Browser/bookmarks",
+    "Browser/br_common",
+    "Browser/webapps",
+    "Browser/webpages",
+    "Browser/websearch",
+    "common",
+    "powermenu",
+    "rink",
+    "shell",
+]
