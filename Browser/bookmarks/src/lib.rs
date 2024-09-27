@@ -3,7 +3,7 @@ use abi_stable::std_types::{
     RString, RVec,
 };
 use anyrun_plugin::*;
-use br_common::{Bookmark, Browser};
+use util::{Bookmark, Browser};
 use common::Bib;
 use serde::Deserialize;
 use std::{fs, process};
@@ -44,7 +44,7 @@ impl Default for Config {
     }
 }
 
-// This exists so I don't have to call br_common::get_default_browser() in get_matches() AND in handle():
+// This exists so I don't have to call util::get_default_browser() in get_matches() AND in handle():
 struct InitData {
     config: Config,
     default_browser: Box<dyn Browser>,
@@ -67,7 +67,7 @@ fn init(config_dir: RString) -> InitData {
         }
     };
 
-    let default_browser = br_common::get_default_browser().unwrap_or_else(|e| {
+    let default_browser = util::get_default_browser().unwrap_or_else(|e| {
         eprintln!("Failed while getting default browser in init: {e}");
         process::exit(1);
     });
@@ -165,7 +165,7 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
     }
 
     // Fuzzy matching
-    br_common::fuzzy_match_bookmarks(bookmarks, stripped_input, config.max_entries())
+    util::fuzzy_match_bookmarks(bookmarks, stripped_input, config.max_entries())
 }
 
 #[handler]

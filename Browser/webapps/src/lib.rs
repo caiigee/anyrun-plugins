@@ -5,7 +5,7 @@ use abi_stable::
     }
 ;
 use anyrun_plugin::*;
-use br_common::{Bookmark, Browser};
+use util::{Bookmark, Browser};
 use common::Bib;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use serde::Deserialize;
@@ -47,7 +47,7 @@ impl Default for Config {
     }
 }
 
-// This exists so I don't have to call br_common::get_default_browser() in get_matches() AND in handle():
+// This exists so I don't have to call util::get_default_browser() in get_matches() AND in handle():
 struct InitData {
     config: Config,
     default_browser: Box<dyn Browser>,
@@ -70,7 +70,7 @@ fn init(config_dir: RString) -> InitData {
         }
     };
 
-    let default_browser = br_common::get_default_browser().unwrap_or_else(|e| {
+    let default_browser = util::get_default_browser().unwrap_or_else(|e| {
         eprintln!("Failed while getting default browser in init: {e}");
         process::exit(1);
     });

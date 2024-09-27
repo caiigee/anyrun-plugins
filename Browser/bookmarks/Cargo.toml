@@ -11,7 +11,7 @@ crate-type = [
 [dependencies]
 anyrun-plugin = { git = "https://github.com/Kirottu/anyrun" }
 abi_stable = "0.11.1"
-br_common = { path = "../br_common" }
+util = { path = "../util" }
 common = { path = "../../common" }
 ron = "0.8.1"
 serde = { version = "1.0.209", features = ["derive"] }

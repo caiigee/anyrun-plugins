@@ -6,7 +6,6 @@ use anyrun_plugin::*;
 use common::Bib;
 use freedesktop_desktop_entry::DesktopEntry;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
-// use fuzzy_matcher::FuzzyMatcher;
 use serde::Deserialize;
 use std::{
     env, fs,
@@ -18,7 +17,9 @@ mod util;
 #[derive(Deserialize)]
 struct Config {
     prefix: Option<String>,
+    // TODO 5.
     desktop_actions: Option<bool>,
+    show_descriptions: Option<bool>,
     max_entries: Option<usize>,
     // TODO 4.
     terminal: Option<String>,
@@ -30,6 +31,9 @@ struct Config {
 impl Config {
     fn prefix(&self) -> &str {
         self.prefix.as_deref().unwrap_or("")
+    }
+    fn show_descriptions(&self) -> bool {
+        self.show_descriptions.unwrap_or(true)
     }
     fn terminal(&self) -> &str {
         self.terminal.as_deref().unwrap_or("kitty")
@@ -63,6 +67,7 @@ impl Default for Config {
             terminal: Some("kitty".to_string()),
             shell: Some(shell),
             bib: Some(Bib::None),
+            show_descriptions: Some(true),
         }
     }
 }
@@ -126,9 +131,10 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
                         title: RString::from(
                             de.name::<&str>(&[]).unwrap_or("Desktop Entry".into()),
                         ),
-                        description: RSome(RString::from(
-                            de.comment::<&str>(&[]).unwrap_or_default(),
-                        )),
+                        description: config
+                            .show_descriptions()
+                            .then(|| RString::from(de.comment::<&str>(&[]).unwrap_or_default()))
+                            .map_or(RNone, RSome),
                         use_pango: false,
                         icon: RSome(RString::from(
                             de.icon().unwrap_or("application-x-executable"),
@@ -148,9 +154,10 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
                             title: RString::from(
                                 de.name::<&str>(&[]).unwrap_or("Desktop Entry".into()),
                             ),
-                            description: RSome(RString::from(
-                                de.comment::<&str>(&[]).unwrap_or_default(),
-                            )),
+                            description: config
+                                .show_descriptions()
+                                .then(|| RString::from(de.comment::<&str>(&[]).unwrap_or_default()))
+                                .map_or(RNone, RSome),
                             use_pango: false,
                             icon: RSome(RString::from(
                                 de.icon().unwrap_or("application-x-executable"),
@@ -182,7 +189,10 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
             .take(config.max_entries())
             .map(|(_, de)| Match {
                 title: RString::from(de.name::<&str>(&[]).unwrap_or("Desktop Entry".into())),
-                description: RSome(RString::from(de.comment::<&str>(&[]).unwrap_or_default())),
+                description: config
+                    .show_descriptions()
+                    .then(|| RString::from(de.comment::<&str>(&[]).unwrap_or_default()))
+                    .map_or(RNone, RSome),
                 use_pango: false,
                 icon: RSome(RString::from(de.icon().unwrap_or_default())),
                 id: RNone,
@@ -199,27 +209,23 @@ pub fn handler(selection: Match, data: &InitData) -> HandleResult {
         .find(|de| de.name::<&str>(&[]).unwrap_or("Desktop Entry".into()) == selection.title)
         .unwrap();
 
-    let exec = match selected_de.parse_exec().map(|v| v.join(" ")) {
-        Ok(v) => v,
+    let exec = match selected_de.parse_exec() {
+        Ok(v) => v.join(" "),
         Err(e) => {
-            eprintln!("Failed while parsing exec from selected Desktop Entry: {e}");
+            eprintln!("Failed while parsing exec from selected Desktop Entry: {e}.");
             return HandleResult::Close;
         }
     };
 
     if selected_de.terminal() {
-        match Command::new(config.terminal()).args(["-e", &exec]).spawn() {
-            Ok(_) => (),
-            Err(e) => eprintln!(
+        if let Err(e) = Command::new(config.terminal()).args(["-e", &exec]).spawn() {
+            eprintln!(
                 "Failed while executing Desktop Entry's exec using the terminal emulator: {e}."
-            ),
+            )
         }
     } else {
-        match Command::new(config.shell()).args(["-c", &exec]).spawn() {
-            Ok(_) => (),
-            Err(e) => {
-                eprintln!("Failed while executing Desktop Entry's exec using the shell: {e}.")
-            }
+        if let Err(e) = Command::new(config.shell()).args(["-c", &exec]).spawn() {
+            eprintln!("Failed while executing Desktop Entry's exec using the shell: {e}.")
         }
     }
 

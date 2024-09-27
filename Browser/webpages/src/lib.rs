@@ -3,9 +3,9 @@ use abi_stable::std_types::{
     RString, RVec,
 };
 use anyrun_plugin::*;
-use br_common::is_valid_page;
 use serde::Deserialize;
-use std::fs;
+use std::{fs, process};
+use util::{is_valid_page, Browser};
 
 #[derive(Deserialize)]
 struct Config {
@@ -14,21 +14,49 @@ struct Config {
 
 impl Default for Config {
     fn default() -> Self {
-        Config { prefix: None }
+        Config {
+            prefix: Some("".to_string()),
+        }
     }
 }
 
+// QoL methods
+impl Config {
+    fn prefix(&self) -> &str {
+        self.prefix.as_deref().unwrap_or("")
+    }
+}
+
+struct InitData {
+    config: Config,
+    default_browser: Box<dyn Browser>,
+}
+
 #[init]
-fn init(config_dir: RString) -> Config {
-    match fs::read_to_string(format!("{config_dir}/webpages.ron")) {
+fn init(config_dir: RString) -> InitData {
+    let config = match fs::read_to_string(format!("{config_dir}/bookmarks.ron")) {
         Ok(v) => ron::from_str(&v).unwrap_or_else(|e| {
-            eprintln!("Failed while parsing webpages config file: {e}. Falling back to default...");
+            eprintln!(
+                "Failed while parsing bookmarks config file: {e}. Falling back to default..."
+            );
             Config::default()
         }),
         Err(e) => {
-            eprintln!("Failed while reading webpages config file: {e}. Falling back to default...");
+            eprintln!(
+                "Failed while reading bookmarks config file: {e}. Falling back to default..."
+            );
             Config::default()
         }
+    };
+
+    let default_browser = util::get_default_browser().unwrap_or_else(|e| {
+        eprintln!("Failed while getting default browser in init: {e}. Crashing the program...");
+        process::exit(1);
+    });
+
+    InitData {
+        config,
+        default_browser,
     }
 }
 
@@ -36,19 +64,20 @@ fn init(config_dir: RString) -> Config {
 fn info() -> PluginInfo {
     PluginInfo {
         name: "Webpages".into(),
-        icon: RString::from("modem"), // Icon from the icon theme
+        icon: RString::from("modem"),
     }
 }
 
 #[get_matches]
-fn get_matches(input: RString, config: &Config) -> RVec<Match> {
+fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
+    let InitData {
+        config,
+        default_browser,
+    } = data;
+
     // VALIDATING PLUGIN
     // Early return for when the prefix doesn't match:
-    if config
-        .prefix
-        .as_deref()
-        .is_some_and(|v| !input.starts_with(&v))
-    {
+    if !input.starts_with(config.prefix()) {
         return RVec::new();
     }
 
@@ -56,7 +85,7 @@ fn get_matches(input: RString, config: &Config) -> RVec<Match> {
     let is_input_valid_page = match is_valid_page(&input) {
         Ok(v) => v,
         Err(e) => {
-            eprintln!("Failed while checking if input is a valid page: {e}");
+            eprintln!("Failed while checking if input is a valid page: {e}.");
             return RVec::new();
         }
     };
@@ -65,10 +94,7 @@ fn get_matches(input: RString, config: &Config) -> RVec<Match> {
     }
 
     // MAIN
-    let stripped_input = match config.prefix.as_deref() {
-        Some(v) => input.strip_prefix(v).unwrap(),
-        None => &input,
-    };
+    let stripped_input = input.strip_prefix(config.prefix()).unwrap();
 
     // Early return for an empty stripped input:
     if stripped_input.is_empty() {
@@ -77,26 +103,23 @@ fn get_matches(input: RString, config: &Config) -> RVec<Match> {
 
     RVec::from(vec![Match {
         title: RString::from(stripped_input),
-        description: RSome(RString::from("Open page in Firefox")),
+        description: RSome(RString::from("Open page in default browser.")),
         use_pango: false,
-        icon: RSome(RString::from("firefox")),
+        icon: RSome(RString::from(default_browser.icon())),
         id: RNone,
     }])
 }
 
 #[handler]
-fn handler(selection: Match) -> HandleResult {
-    let default_browser = match br_common::get_default_browser() {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("Failed while getting the default browser: {e}");
-            return HandleResult::Close;
-        }
-    };
-
+fn handler(selection: Match, data: &InitData) -> HandleResult {
+    let InitData {
+        config: _,
+        default_browser,
+    } = data;
+    
     default_browser
         .open(&selection.title)
-        .unwrap_or_else(|e| eprintln!("Failed while opening URL in browser: {e}"));
+        .unwrap_or_else(|e| eprintln!("Failed while opening URL in browser: {e}."));
 
     HandleResult::Close
 }

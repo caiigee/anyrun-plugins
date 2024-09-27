@@ -3,7 +3,7 @@ resolver = "2"
 members = [
     "applications",
     "Browser/bookmarks",
-    "Browser/br_common",
+    "Browser/util",
     "Browser/webapps",
     "Browser/webpages",
     "Browser/websearch",

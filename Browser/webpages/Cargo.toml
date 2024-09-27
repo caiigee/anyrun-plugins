@@ -11,5 +11,5 @@ anyrun-plugin = { git = "https://github.com/Kirottu/anyrun" }
 abi_stable = "0.11.1"
 ron = "0.8.0"
 serde = { version = "1.0.152", features = ["derive"] }
-br_common = { path = "../br_common" }
+util = { path = "../util" }
 common = {path = "../../common" }
