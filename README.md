@@ -1,3 +1,4 @@
+# Important! This is a work in progress...
 This repository contains some Anyrun plugins I have modified or outright created myself.
 
 As this is my first Rust project, while coding I was also reading the Rust book and prompting Claude in order to learn more about Rust. This means that sometimes my "style" and solutions are inconsistent. I will try to fix any inconsistencies I find but this is definitely not a priority.
