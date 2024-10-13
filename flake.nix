@@ -33,21 +33,6 @@
           nativeBuildInputs = with pkgs; [ rustVersion ];
         };
 
-        buildPlugin = name: pkgs.rustPlatform.buildRustPackage {
-          pname = "anyrun-${name}-plugin";
-          version = "0.1.0";
-          src = ./.;
-          cargoLock = {
-            lockFile = ./Cargo.lock;
-            outputHashes = {
-              "anyrun-interface-0.1.0" = "sha256-fQ4LkmZeW4eGowbVfvct1hLFD0hNkZiX5SzRlWqhgxc=";
-            };
-          };
-          buildInputs = with pkgs; [ sqlite ];
-          nativeBuildInputs = with pkgs; [ rustVersion ];
-          cargoBuildFlags = [ "--package" name ];
-        };
-
         pluginNames = [
           "applications"
           "bookmarks"
@@ -62,10 +47,7 @@
       {
         packages = {
           default = buildWorkspace;
-        } // builtins.listToAttrs (map (name: {
-          inherit name;
-          value = buildPlugin name;
-        }) pluginNames);
+        };
 
         devShell = pkgs.mkShell {
           buildInputs = with pkgs; [
