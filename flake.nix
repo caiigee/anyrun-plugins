@@ -25,25 +25,25 @@
           src = ./.;
           cargoLock = {
             lockFile = ./Cargo.lock;
+            outputHashes = {
+              "anyrun-interface-0.1.0" = "sha256-fQ4LkmZeW4eGowbVfvct1hLFD0hNkZiX5SzRlWqhgxc=";
+            };
           };
-          outputHashes = {
-            "anyrun-interface-0.1.0" = "sha256-J0XqCrMXxc6TbGpDtAOa8Igk+Qi4RdhH5pLBJf5kAFw=";
-          };
-          buildInputs = with pkgs; [ ];
+          buildInputs = with pkgs; [ sqlite ];
           nativeBuildInputs = with pkgs; [ rustVersion ];
         };
 
         buildPlugin = name: pkgs.rustPlatform.buildRustPackage {
-          pname = "anyrun-${name}";
+          pname = "anyrun-${name}-plugin";
           version = "0.1.0";
           src = ./.;
           cargoLock = {
             lockFile = ./Cargo.lock;
+            outputHashes = {
+              "anyrun-interface-0.1.0" = "sha256-fQ4LkmZeW4eGowbVfvct1hLFD0hNkZiX5SzRlWqhgxc=";
+            };
           };
-          outputHashes = {
-            "anyrun-interface-0.1.0" = "sha256-J0XqCrMXxc6TbGpDtAOa8Igk+Qi4RdhH5pLBJf5kAFw=";
-          };
-          buildInputs = with pkgs; [ ];
+          buildInputs = with pkgs; [ sqlite ];
           nativeBuildInputs = with pkgs; [ rustVersion ];
           cargoBuildFlags = [ "--package" name ];
         };

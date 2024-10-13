@@ -144,16 +144,8 @@ fn merge_desktop_entries<'a>(
     merged_map.into_values().collect()
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
 
-    #[test]
-    fn de() {
-        let Ok(hello) = scrape_desktop_entries() else {
-            panic!()
-        };
-        dbg!(hello[0].exec());
-        panic!()
-    }
-}
+// }
