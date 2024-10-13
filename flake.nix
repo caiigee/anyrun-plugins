@@ -18,13 +18,16 @@
           inherit system overlays;
         };
         rustVersion = pkgs.rust-bin.stable.latest.default;
-        
+
         buildWorkspace = pkgs.rustPlatform.buildRustPackage {
           pname = "anyrun-plugins";
           version = "0.1.0";
           src = ./.;
           cargoLock = {
             lockFile = ./Cargo.lock;
+          };
+          outputHashes = {
+            "anyrun-interface-0.1.0" = "sha256-J0XqCrMXxc6TbGpDtAOa8Igk+Qi4RdhH5pLBJf5kAFw=";
           };
           buildInputs = with pkgs; [ ];
           nativeBuildInputs = with pkgs; [ rustVersion ];
@@ -36,6 +39,9 @@
           src = ./.;
           cargoLock = {
             lockFile = ./Cargo.lock;
+          };
+          outputHashes = {
+            "anyrun-interface-0.1.0" = "sha256-J0XqCrMXxc6TbGpDtAOa8Igk+Qi4RdhH5pLBJf5kAFw=";
           };
           buildInputs = with pkgs; [ ];
           nativeBuildInputs = with pkgs; [ rustVersion ];
@@ -56,8 +62,8 @@
       {
         packages = {
           default = buildWorkspace;
-        } // builtins.listToAttrs (map (name: { 
-          inherit name; 
+        } // builtins.listToAttrs (map (name: {
+          inherit name;
           value = buildPlugin name;
         }) pluginNames);
 
