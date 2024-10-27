@@ -1,25 +1,16 @@
 {
-  description = "Custom Anyrun plugins";
+  description = "Custom anyrun plugins";
 
-  inputs = {
-    nixpkgs.url = "nixpkgs/nixos-unstable";
-    rust-overlay = {
-      url = "github:oxalica/rust-overlay";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-    flake-utils.url = "github:numtide/flake-utils";
-  };
+  inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
 
-  outputs = { self, nixpkgs, rust-overlay, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs = { nixpkgs, ... }:
+    let
+      forAllSystems = nixpkgs.lib.genAttrs [ "aarch64-linux" "x86_64-linux" ];
+    in
+    forAllSystems (system:
       let
-        overlays = [ (import rust-overlay) ];
-        pkgs = import nixpkgs {
-          inherit system overlays;
-        };
-        rustVersion = pkgs.rust-bin.stable.latest.default;
-
-        buildWorkspace = pkgs.rustPlatform.buildRustPackage {
+        pkgs = import nixpkgs { inherit system; };
+        default-package = pkgs.rustPlatform.buildRustPackage {
           pname = "anyrun-plugins";
           version = "0.1.0";
           src = ./.;
@@ -30,33 +21,10 @@
             };
           };
           buildInputs = with pkgs; [ sqlite ];
-          nativeBuildInputs = with pkgs; [ rustVersion ];
         };
-
-        pluginNames = [
-          "applications"
-          "bookmarks"
-          "webapps"
-          "webpages"
-          "websearch"
-          "powermenu"
-          "rink"
-          "shell"
-        ];
-      in
-      {
-        packages = {
-          default = buildWorkspace;
-        };
-
-        devShell = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            rustVersion
-            rust-analyzer
-            clippy
-            sqlite
-          ];
-        };
+      in {
+        packages.default = default-package;
+        devShells.default = nixpkgs.legacyPackages.${system}.callPackage ./shell.nix { inherit default-package; };
       }
     );
 }

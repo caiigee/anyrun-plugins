@@ -128,11 +128,12 @@ impl Browser for Firefox {
     }
 
     fn bookmarks(&self, profile_name: &str) -> Result<Vec<Bookmark>, Box<dyn Error>> {
-        // PROFILE DIRECTORY
+        // GETTING PROFILE DIRECTORY
         let home_dir = env!("HOME");
         let firefox_path = format!("{home_dir}/.mozilla/firefox");
 
         // Getting the profile name:
+        dbg!(&firefox_path);
         let Some(profile_dir) = fs::read_dir(&firefox_path)
             .map_err(|e| format!("Failed while reading firefox directory: {e:?}"))?
             .find(|r| match r {

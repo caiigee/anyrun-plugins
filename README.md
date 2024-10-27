@@ -31,7 +31,7 @@ Currently I have only implemented executing Desktop Entries and not Desktop Acti
 
 # Browser
 
-Browser isn't actually a plugin, but a group of plugins. All of them require or interact with the browser so I grouped them together into a seperate folder.
+Browser isn't actually a plugin, but a group of plugins. All of them require or interact with the browser so I grouped them together into a seperate folder. For browser plugins to work `xdg-utils` needs to be installed (it is required for finding the default browser via `xdg-settings get default-web-browser`)
 
 ## Websearch
 
@@ -41,7 +41,7 @@ Example config with default values and example engines:
 ```
 Config(
     prefix: Some(""),
-    engines: [
+    engines: Some([
         Engine(
             name: "Searxng",
             url: "search.hbubli.cc/search?q={}",
@@ -89,7 +89,7 @@ Config(
             prefix: "cg: ",
             icon: Some("cargo")
         ),
-    ]
+    ])
 )
 ```
 
