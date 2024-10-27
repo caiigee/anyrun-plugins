@@ -23,8 +23,8 @@
           buildInputs = with pkgs; [ sqlite ];
         };
       in {
-        packages.default = default-package;
-        devShells.default = nixpkgs.legacyPackages.${system}.callPackage ./shell.nix { inherit default-package; };
+        packages.${system}.default = default-package;
+        devShells.${system} = pkgs.callPackage ./shell.nix { inherit default-package; };
       }
     );
 }
