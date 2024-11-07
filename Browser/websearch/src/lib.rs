@@ -3,9 +3,9 @@ use abi_stable::std_types::{
     RString, RVec,
 };
 use anyrun_plugin::*;
-use util::is_valid_page;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use util::is_valid_page;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Engine {
@@ -179,7 +179,9 @@ fn handler(selection: Match, config: &Config) -> HandleResult {
 
     default_browser
         .open(engine.url.replace("{}", &selection.title).as_str())
-        .unwrap_or_else(|e| eprintln!("(Websearch Plugin) Failed while opening URL in browser: {e}"));
+        .unwrap_or_else(|e| {
+            eprintln!("(Websearch Plugin) Failed while opening URL in browser: {e}")
+        });
 
     HandleResult::Close
 }

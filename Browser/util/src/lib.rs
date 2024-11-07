@@ -10,6 +10,7 @@ use std::{
     fs::{self, File},
     io::{self, Write},
     process::Command,
+    env
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -78,23 +79,20 @@ pub trait Browser: Send + Sync {
 
 struct Firefox {
     icon: String,
+    
 }
 // Functions which are only applicable to firefox:
 impl Firefox {
     // The reason this function is not in the Browser trait is because I don't know how other browsers handle their bookmarks so I don't know if the same "DatabaseBusy" problem will be an issue:
-    fn cached_bookmarks() -> Result<Vec<Bookmark>, Box<dyn Error>> {
-        let home_dir = env!("HOME");
+    fn cached_bookmarks(home_dir: &str) -> Result<Vec<Bookmark>, Box<dyn Error>> {
         let bookmarks_ron = fs::read_to_string(format!(
             "{home_dir}/.cache/anyrun-plugins/firefox-bookmarks.ron"
         ))?;
         let bookmarks = ron::from_str(&bookmarks_ron)?;
         Ok(bookmarks)
     }
-    fn is_profile_running(profile_dir: &str) -> Result<bool, Box<dyn Error>> {
-        // Construct the profile path:
-        let home_dir = env!("HOME");
-        let profile_path = format!("{home_dir}/.mozilla/firefox/{profile_dir}");
-
+    fn is_profile_running(profile_path: &str) -> Result<bool, Box<dyn Error>> {
+        
         // Get all Firefox process IDs:
         let ps_output = Command::new("ps")
             .args(&["-C", "firefox", "-o", "pid="])
@@ -114,7 +112,7 @@ impl Firefox {
                 return Ok(true);
             }
         }
-
+        
         Ok(false)
     }
 }
@@ -128,12 +126,13 @@ impl Browser for Firefox {
     }
 
     fn bookmarks(&self, profile_name: &str) -> Result<Vec<Bookmark>, Box<dyn Error>> {
-        // GETTING PROFILE DIRECTORY
-        let home_dir = env!("HOME");
+        // GETTING PROFILE PATH
+        let home_dir = env::var("HOME").map_err(|e| format!("HOME env variable not set! Bookmarks cannot be obtained: {e}"))?;
         let firefox_path = format!("{home_dir}/.mozilla/firefox");
 
-        // Getting the profile name:
-        dbg!(&firefox_path);
+        // Getting the correct profile directory. The profile directory may have a name
+        // like "<random_characters>.<name>" or just "<name>". Because it cannot be inferred
+        // from the profile name alone, a .find() method is required to find the target dir:
         let Some(profile_dir) = fs::read_dir(&firefox_path)
             .map_err(|e| format!("Failed while reading firefox directory: {e:?}"))?
             .find(|r| match r {
@@ -152,22 +151,23 @@ impl Browser for Firefox {
             .file_name()
             .into_string()
             .map_err(|_| "Failed while converting OsString to String")?;
+        // Profile path.
+        let profile_path = format!("{firefox_path}/{profile_dir}");
         
         // PROFILE RUNNING CHECK
         // Early return for when the firefox profile is already running:
         if Firefox::is_profile_running(&profile_dir)? {
-            return Firefox::cached_bookmarks();
+            return Firefox::cached_bookmarks(&home_dir);
         }
 
         // MAIN
         // Creating the connection:
-        let conn = Connection::open(format!("{firefox_path}/{profile_dir}/places.sqlite"))
+        let conn = Connection::open(format!("{profile_path}/places.sqlite"))
             .map_err(|e| format!("Failed while creating the DB connection: {e:?}"))?;
 
         // Creating the SQL query:
-        let mut statement = conn
-            .prepare(
-                "SELECT
+        let mut statement = conn.prepare(
+        "SELECT
             mb.title,
             mp.url,
             mk.keyword
@@ -177,8 +177,7 @@ impl Browser for Firefox {
             LEFT JOIN moz_keywords mk ON mp.id = mk.place_id
         WHERE
             mb.type = 1; -- Only select bookmarks (type 1)",
-            )
-            .map_err(|e| format!("Failed while preparing SQL query: {e:?}"))?;
+        ).map_err(|e| format!("Failed while preparing SQL query: {e:?}"))?;
 
         // Regex for extracting the complete domain out of a URL.
         let domain_re = Regex::new(r"^https?://([^/]+)")?;

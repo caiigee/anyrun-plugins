@@ -1,6 +1,7 @@
-{ pkgs, default-package }:
+{ pkgs }:
 
 let
+  default-package = pkgs.callPackage ./default.nix;
   # TESTING
   # Writing the config file:
   mkAnyrunTestConfig = pkgs.writeText "config.ron" ''
@@ -32,15 +33,29 @@ let
   anyrunTestScript = pkgs.writeShellScriptBin "test-anyrun" ''
     ${pkgs.anyrun}/bin/anyrun -c ${anyrunConfigDir}
   '';
+  
+  # DEVELOPMENT
+  rust-tools = with pkgs; [
+    clippy
+  ];
+  mkToolLinks = tools: ''
+    mkdir -p .env/bin
+    ${builtins.concatStringsSep "\n" (map (tool: ''
+      for toolpath in ${tool}/bin/*; do
+        ln -sf $toolpath .env/bin/$(basename $toolpath)
+      done
+    '') tools)}
+  '';
 in
 pkgs.mkShell {
   inputsFrom = [ default-package ];
   buildInputs = with pkgs; [
-    sqlite
+    rust-tools
     anyrunTestScript
     anyrun
   ];
   shellHook = ''
+    ${mkToolLinks rust-tools}
     echo "Successfully initialized anyrun-plugins development shell!"
   '';
 }
