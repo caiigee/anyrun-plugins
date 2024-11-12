@@ -1,7 +1,7 @@
 { pkgs }:
 
 let
-  default-package = pkgs.callPackage ./default.nix;
+  default-package = pkgs.callPackage ./default.nix { };
   # TESTING
   # Writing the config file:
   mkAnyrunTestConfig = pkgs.writeText "config.ron" ''
@@ -37,6 +37,8 @@ let
   # DEVELOPMENT
   rust-tools = with pkgs; [
     clippy
+    rust-analyzer
+    rustfmt
   ];
   mkToolLinks = tools: ''
     mkdir -p .env/bin
@@ -49,10 +51,10 @@ let
 in
 pkgs.mkShell {
   inputsFrom = [ default-package ];
-  buildInputs = with pkgs; [
+  buildInputs = [
     rust-tools
     anyrunTestScript
-    anyrun
+    pkgs.anyrun
   ];
   shellHook = ''
     ${mkToolLinks rust-tools}

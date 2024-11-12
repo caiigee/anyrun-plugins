@@ -11,4 +11,5 @@ members = [
     "powermenu",
     "rink",
     "shell",
+    "browser",
 ]

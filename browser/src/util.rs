@@ -13,6 +13,43 @@ use std::{
     env
 };
 
+// CONFIGS
+#[derive(Debug, Deserialize)]
+pub struct BookmarksConfig {
+    prefix: Option<String>,
+    // It has to be usize because the .take() method takes usize...
+    max_entries: Option<usize>,
+    profile_name: Option<String>,
+    bib: Option<Bib>,
+}
+
+// QoL methods so I don't have to chain methods:
+impl BookmarksConfig {
+    fn prefix(&self) -> &str {
+        self.prefix.as_deref().unwrap_or("*")
+    }
+    fn profile_name(&self) -> &str {
+        self.profile_name.as_deref().unwrap_or("default")
+    }
+    fn max_entries(&self) -> usize {
+        self.max_entries.unwrap_or(7)
+    }
+    fn bib(&self) -> &Bib {
+        self.bib.as_ref().unwrap_or(&Bib::None)
+    }
+}
+
+impl Default for BookmarksConfig {
+    fn default() -> Self {
+        BookmarksConfig {
+            prefix: Some("*".to_string()),
+            max_entries: Some(7),
+            profile_name: Some("default".to_string()),
+            bib: Some(Bib::All),
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Bookmark {
     title: Option<String>,
@@ -79,8 +116,8 @@ pub trait Browser: Send + Sync {
 
 struct Firefox {
     icon: String,
-    
 }
+
 // Functions which are only applicable to firefox:
 impl Firefox {
     // The reason this function is not in the Browser trait is because I don't know how other browsers handle their bookmarks so I don't know if the same "DatabaseBusy" problem will be an issue:
@@ -92,7 +129,7 @@ impl Firefox {
         Ok(bookmarks)
     }
     fn is_profile_running(profile_path: &str) -> Result<bool, Box<dyn Error>> {
-        
+
         // Get all Firefox process IDs:
         let ps_output = Command::new("ps")
             .args(&["-C", "firefox", "-o", "pid="])
@@ -112,7 +149,7 @@ impl Firefox {
                 return Ok(true);
             }
         }
-        
+
         Ok(false)
     }
 }
@@ -153,7 +190,7 @@ impl Browser for Firefox {
             .map_err(|_| "Failed while converting OsString to String")?;
         // Profile path.
         let profile_path = format!("{firefox_path}/{profile_dir}");
-        
+
         // PROFILE RUNNING CHECK
         // Early return for when the firefox profile is already running:
         if Firefox::is_profile_running(&profile_dir)? {

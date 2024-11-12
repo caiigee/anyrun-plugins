@@ -1,6 +1,6 @@
 { pkgs, ... }:
 
-pkgs.rustPlatform.buildRustPackage {
+with pkgs; rustPlatform.buildRustPackage {
   pname = "anyrun-plugins";
   version = "0.1.0";
   src = ./.;
@@ -10,11 +10,10 @@ pkgs.rustPlatform.buildRustPackage {
       "anyrun-interface-0.1.0" = "sha256-fQ4LkmZeW4eGowbVfvct1hLFD0hNkZiX5SzRlWqhgxc=";
     };
   };
-  buildInputs = with pkgs; [
+  buildInputs = [
     sqlite
     xdg-utils
     ps
     lsof
   ];
 }
-
