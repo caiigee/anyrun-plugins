@@ -1,7 +1,7 @@
 { pkgs }:
+
 let
   default-package = pkgs.callPackage ./default.nix { };
-  # TESTING
   # Writing the config file:
   mkAnyrunTestConfig = pkgs.writeText "config.ron" ''
     Config(
@@ -10,14 +10,13 @@ let
       width: Absolute(500),
       height: Absolute(100),
       plugins: [
-        "${toString default-package}/lib/libapplications.so",
-        "${toString default-package}/lib/libbookmarks.so",
-        "${toString default-package}/lib/libwebapps.so",
-        "${toString default-package}/lib/libwebpages.so",
-        "${toString default-package}/lib/libpowermenu.so",
-        "${toString default-package}/lib/librink.so",
-        "${toString default-package}/lib/libshell.so"
-        "${toString default-package}/lib/libwebsearch.so",
+        "${default-package}/lib/libapplications.so",
+        "${default-package}/lib/libbookmarks.so",
+        "${default-package}/lib/libwebpages.so",
+        "${default-package}/lib/libpowermenu.so",
+        "${default-package}/lib/librink.so",
+        "${default-package}/lib/libshell.so",
+        "${default-package}/lib/libwebsearch.so",
       ]
     )
   '';
@@ -32,8 +31,5 @@ let
   anyrunTestScript = pkgs.writeShellScriptBin "test-anyrun" ''
     ${pkgs.anyrun}/bin/anyrun -c ${anyrunConfigDir}
   '';
-
 in
-{
-  inherit anyrunTestScript;
-}
+  anyrunTestScript

@@ -1,6 +1,7 @@
 { pkgs }:
 
 let
+  default-package = pkgs.callPackage ./default.nix { };
   rust-tools = with pkgs; [
     clippy
     rust-analyzer
@@ -16,11 +17,10 @@ let
   '';
 in
 pkgs.mkShell {
-  # inputsFrom = [ default-package ];
-  buildInputs = [
+  # For some reason rust-analyzer doesn't work without this.
+  inputsFrom = [ default-package ];
+  buildInputs = [ 
     rust-tools
-    # anyrunTestScript
-    pkgs.anyrun
   ];
   shellHook = ''
     ${mkToolLinks rust-tools}
