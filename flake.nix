@@ -19,9 +19,13 @@
       packages = forAllSystems (system: {
         default = (pkgsForSystem system).callPackage ./default.nix { };
       });
-      
+
       devShells = forAllSystems (system: {
         default = (pkgsForSystem system).callPackage ./shell.nix { };
+      });
+
+      test = forAllSystems (system: {
+        default = (pkgsForSystem system).callPackage ./test.nix { };
       });
     };
 }
