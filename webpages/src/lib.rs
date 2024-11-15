@@ -5,7 +5,7 @@ use abi_stable::std_types::{
 use anyrun_plugin::*;
 use serde::Deserialize;
 use std::{fs, process};
-use util::{is_valid_page, Browser};
+use common::{is_valid_page, Browser};
 
 #[derive(Deserialize)]
 struct Config {
@@ -49,7 +49,7 @@ fn init(config_dir: RString) -> InitData {
         }
     };
 
-    let default_browser = util::get_default_browser().unwrap_or_else(|e| {
+    let default_browser = common::get_default_browser().unwrap_or_else(|e| {
         eprintln!("Failed while getting default browser in init: {e}. Crashing the program...");
         process::exit(1);
     });

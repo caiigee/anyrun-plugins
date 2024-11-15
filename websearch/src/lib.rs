@@ -5,7 +5,7 @@ use abi_stable::std_types::{
 use anyrun_plugin::*;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use util::is_valid_page;
+use common::is_valid_page;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct Engine {
@@ -169,7 +169,7 @@ fn handler(selection: Match, config: &Config) -> HandleResult {
         // It is safe to unwrap because the selected engine must be in config.engines.
         .unwrap();
 
-    let default_browser = match util::get_default_browser() {
+    let default_browser = match common::get_default_browser() {
         Ok(v) => v,
         Err(e) => {
             eprintln!("(Websearch Plugin) Failed while getting the default browser: {e}. Closing Anyrun...");

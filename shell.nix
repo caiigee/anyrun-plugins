@@ -15,10 +15,10 @@ let
         "${toString default-package}/lib/libbookmarks.so",
         "${toString default-package}/lib/libwebapps.so",
         "${toString default-package}/lib/libwebpages.so",
-        "${toString default-package}/lib/libwebsearch.so",
         "${toString default-package}/lib/libpowermenu.so",
         "${toString default-package}/lib/librink.so",
         "${toString default-package}/lib/libshell.so"
+        "${toString default-package}/lib/libwebsearch.so",
       ]
     )
   '';
@@ -53,7 +53,7 @@ pkgs.mkShell {
   inputsFrom = [ default-package ];
   buildInputs = [
     rust-tools
-    anyrunTestScript
+    # anyrunTestScript
     pkgs.anyrun
   ];
   shellHook = ''

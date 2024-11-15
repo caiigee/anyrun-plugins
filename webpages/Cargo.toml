@@ -1,13 +1,14 @@
 [package]
-name = "common"
+name = "webpages"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib"]
+
 [dependencies]
 abi_stable = "0.11.3"
-fuzzy-matcher = "0.3.7"
 anyrun-plugin = { git = "https://github.com/Kirottu/anyrun" }
-regex = "1.11.1"
+common = { version = "0.1.0", path = "../common" }
 ron = "0.8.1"
-rusqlite = "0.32.1"
-serde = { version = "1.0.210", features = ["derive"] }
+serde = { version = "1.0.215", features = ["derive"] }

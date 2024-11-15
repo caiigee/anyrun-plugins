@@ -12,20 +12,24 @@ struct Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            prefix: Some(String::from("# ")),
+            prefix: Some(String::from("#")),
         }
     }
 }
 
 #[init]
 fn init(config_dir: RString) -> (rink_core::Context, Config) {
-    let config = match fs::read_to_string(PathBuf::from(config_dir.to_string()).join("rink.ron")) {
+    let config = match fs::read_to_string(format!("{config_dir}/rink.ron")) {
         Ok(v) => ron::from_str(&v).unwrap_or_else(|e| {
-            eprintln!("Failed while parsing ring config file: {e}. Falling back to default...");
+            eprintln!(
+                "Failed while parsing rink config file: {e}. Falling back to default..."
+            );
             Config::default()
         }),
         Err(e) => {
-            eprintln!("Failed while reading rink config file: {e}. Falling back to default...");
+            eprintln!(
+                "Failed while reading rink config file: {e}. Falling back to default..."
+            );
             Config::default()
         }
     };

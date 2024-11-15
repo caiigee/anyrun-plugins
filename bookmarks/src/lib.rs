@@ -3,17 +3,44 @@ use abi_stable::std_types::{
     RString, RVec,
 };
 use anyrun_plugin::*;
-use util::{Bookmark, Browser};
-use common::Bib;
+use common::{Bib, Bookmark, Browser};
 use serde::Deserialize;
 use std::{fs, process};
 
-mod util;
-
 #[derive(Debug, Deserialize)]
-struct Config {
-    bookmarks: BookmarksConfig,
-    
+pub struct Config {
+    prefix: Option<String>,
+    // It has to be usize because the .take() method takes usize...
+    max_entries: Option<usize>,
+    profile_name: Option<String>,
+    bib: Option<Bib>,
+}
+
+// QoL methods so I don't have to chain methods:
+impl Config {
+    fn prefix(&self) -> &str {
+        self.prefix.as_deref().unwrap_or("*")
+    }
+    fn profile_name(&self) -> &str {
+        self.profile_name.as_deref().unwrap_or("default")
+    }
+    fn max_entries(&self) -> usize {
+        self.max_entries.unwrap_or(7)
+    }
+    fn bib(&self) -> &Bib {
+        self.bib.as_ref().unwrap_or(&Bib::None)
+    }
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Config {
+            prefix: Some("*".to_string()),
+            max_entries: Some(7),
+            profile_name: Some("default".to_string()),
+            bib: Some(Bib::All),
+        }
+    }
 }
 
 // This exists so I don't have to call util::get_default_browser() in get_matches() AND in handle():
@@ -39,7 +66,7 @@ fn init(config_dir: RString) -> InitData {
         }
     };
 
-    let default_browser = util::get_default_browser().unwrap_or_else(|e| {
+    let default_browser = common::get_default_browser().unwrap_or_else(|e| {
         eprintln!("Failed while getting default browser in init: {e}");
         process::exit(1);
     });
@@ -51,11 +78,10 @@ fn init(config_dir: RString) -> InitData {
 }
 
 #[info]
-fn info(data: InitData) -> PluginInfo {
-    let InitData { _config, default_browser } = data;
+fn info() -> PluginInfo {
     PluginInfo {
-        name: RString::from("Browser integration"),
-        icon: RString::from(default_browser.icon),
+        name: RString::from("Bookmarks"),
+        icon: RString::from("user-bookmarks"),
     }
 }
 
@@ -68,7 +94,10 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
 
     // VALIDATING PLUGIN
     // Early return for the wrong prefix:
-
+    if !input.starts_with(config.prefix()) {
+        return RVec::new();
+    }
+    
     // MAIN
     let stripped_input = input.strip_prefix(config.prefix()).unwrap().trim();
 
@@ -135,7 +164,7 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
     }
 
     // Fuzzy matching
-    util::fuzzy_match_bookmarks(bookmarks, stripped_input, config.max_entries())
+    common::fuzzy_match_bookmarks(bookmarks, stripped_input, config.max_entries())
 }
 
 #[handler]

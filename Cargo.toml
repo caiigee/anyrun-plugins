@@ -2,14 +2,11 @@
 resolver = "2"
 members = [
     "applications",
-    "Browser/bookmarks",
-    "Browser/util",
-    "Browser/webapps",
-    "Browser/webpages",
-    "Browser/websearch",
     "common",
     "powermenu",
     "rink",
     "shell",
-    "browser",
+    "bookmarks",
+    "webpages",
+    "websearch"
 ]
