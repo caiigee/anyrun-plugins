@@ -3,7 +3,7 @@
 let
   default-package = pkgs.callPackage ./default.nix { };
   # Writing the config file:
-  mkAnyrunTestConfig = pkgs.writeText "config.ron" ''
+  mkAnyrunConfig = pkgs.writeText "config.ron" ''
     Config(
       x: Fraction(0.5),
       y: Fraction(0.33),
@@ -20,16 +20,25 @@ let
       ]
     )
   '';
-
-  # Making a directory with the config file:
-  anyrunConfigDir = pkgs.runCommand "anyrun-config" {} ''
-  mkdir -p $out
-    cp ${mkAnyrunTestConfig} $out/config.ron
+  
+  # Writing the config for websearch:
+  mkBrowserConfig = pkgs.writeText "browser.ron" ''
+    Config(
+      command_prefix: Some("uwsm app -- ")
+    )
   '';
+
+  # # Making a directory with the config file:
+  # anyrunConfigDir = pkgs.runCommand "anyrun-config" {} ''
+
+  # '';
 
   # Defining the script to run anyrun with the test configuration:
   anyrunTestScript = pkgs.writeShellScriptBin "test-anyrun" ''
-    ${pkgs.anyrun}/bin/anyrun -c ${anyrunConfigDir}
+    ${pkgs.anyrun}/bin/anyrun -c
+    mkdir -p $out
+    cp ${mkAnyrunConfig} $out/config.ron
+    cp ${mkBrowserConfig} $out/browser.ron
   '';
 in
   anyrunTestScript

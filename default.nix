@@ -4,6 +4,7 @@ with pkgs; rustPlatform.buildRustPackage {
   pname = "anyrun-plugins";
   version = "0.1.0";
   src = ./.;
+  CARGO_BUILD_OPTS = "--incremental";
   cargoLock = {
     lockFile = ./Cargo.lock;
     outputHashes = {
@@ -13,7 +14,5 @@ with pkgs; rustPlatform.buildRustPackage {
   buildInputs = [
     sqlite
     xdg-utils
-    ps
-    lsof
   ];
 }

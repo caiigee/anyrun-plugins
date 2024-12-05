@@ -2,7 +2,7 @@ use abi_stable::std_types::{ROption, RString, RVec};
 use anyrun_plugin::*;
 use rink_core::{ast, date, gnu_units, CURRENCY_FILE};
 use serde::Deserialize;
-use std::{fs, path::PathBuf};
+use std::fs;
 
 #[derive(Deserialize)]
 struct Config {

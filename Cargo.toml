@@ -8,5 +8,6 @@ members = [
     "shell",
     "bookmarks",
     "webpages",
-    "websearch"
+    "websearch",
+    "kidex",
 ]

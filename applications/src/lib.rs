@@ -3,13 +3,13 @@ use abi_stable::std_types::{
     RString, RVec,
 };
 use anyrun_plugin::*;
-use common::Bib;
+use common::types::Bib;
 use freedesktop_desktop_entry::DesktopEntry;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use serde::Deserialize;
 use std::{
-    env, fs,
-    process::{self, Command},
+    fs,
+    process::{self},
 };
 
 mod util;
@@ -18,12 +18,12 @@ mod util;
 struct Config {
     prefix: Option<String>,
     // TODO 5.
-    desktop_actions: Option<bool>,
-    show_descriptions: Option<bool>,
+    // desktop_actions: Option<bool>,
     max_entries: Option<usize>,
     // TODO 4.
-    terminal: Option<String>,
-    shell: Option<String>,
+    // terminal: Option<String>,
+    // shell: Option<String>,
+    command_prefix: Option<String>,
     bib: Option<Bib>,
 }
 
@@ -32,42 +32,44 @@ impl Config {
     fn prefix(&self) -> &str {
         self.prefix.as_deref().unwrap_or("")
     }
-    fn show_descriptions(&self) -> bool {
-        self.show_descriptions.unwrap_or(true)
-    }
-    fn terminal(&self) -> &str {
-        self.terminal.as_deref().unwrap_or("kitty")
-    }
+    // fn terminal(&self) -> &str {
+    //     self.terminal.as_deref().unwrap_or("kitty")
+    // }
     fn bib(&self) -> &Bib {
         self.bib.as_ref().unwrap_or(&Bib::None)
     }
     fn max_entries(&self) -> usize {
         self.max_entries.unwrap_or(5)
     }
-    fn shell(&self) -> String {
-        self.shell.clone().unwrap_or_else(|| {
-            env::var("SHELL").unwrap_or_else(|e| {
-                eprintln!("Failed while finding the SHELL env variable: {e:?}");
-                process::exit(1);
-            })
-        })
+    fn command_prefix(&self) -> &str {
+        &self.command_prefix.as_deref().unwrap_or_default()
     }
+    // fn shell(&self) -> String {
+    //     self.shell.clone().unwrap_or_else(|| {
+    //         env::var("SHELL").unwrap_or_else(|e| {
+    //             eprintln!("(Applications) Failed while finding the SHELL env variable: {e}");
+    //             process::exit(1);
+    //         })
+    //     })
+    // }
 }
 
 impl Default for Config {
     fn default() -> Self {
-        let shell = env::var("SHELL").unwrap_or_else(|e| {
-            eprintln!("Failed while finding the SHELL env variable: {e:?}");
-            process::exit(1);
-        });
+        // let shell = env::var("SHELL").unwrap_or_else(|e| {
+        //     eprintln!(
+        //         "(Applications) Failed while getting the SHELL env variable. Closing...:\n  {e}"
+        //     );
+        //     process::exit(1);
+        // });
         Config {
-            prefix: Some("".to_string()),
-            desktop_actions: Some(false),
+            prefix: Some(String::default()),
+            // desktop_actions: Some(false),
             max_entries: Some(5),
-            terminal: Some("kitty".to_string()),
-            shell: Some(shell),
+            // terminal: Some("kitty".to_string()),
+            // shell: Some(shell),
             bib: Some(Bib::None),
-            show_descriptions: Some(true),
+            command_prefix: Some(String::default())
         }
     }
 }
@@ -90,18 +92,18 @@ pub fn init(config_dir: RString) -> InitData<'static> {
     let config = match fs::read_to_string(format!("{config_dir}/applications.ron")) {
         Ok(content) => ron::from_str(&content).unwrap_or_else(|e| {
             eprintln!(
-                "Failed while parsing applications config: {e:?}. Falling back to default..."
+                "(Applications) Failed while parsing applications config:\n  {e} Falling back to default..."
             );
             Config::default()
         }),
         Err(e) => {
-            eprintln!("Failed while reading applications config: {e:?}. Falling back to default.");
+            eprintln!("(Applications) Failed while reading applications config:\n  {e} Falling back to default.");
             Config::default()
         }
     };
 
     let entries = util::scrape_desktop_entries().unwrap_or_else(|e| {
-        eprintln!("Failed to load desktop entries: {e:?}. Crashing Anyrun...");
+        eprintln!("(Applications) Failed to load desktop entries:\n  {e} Crashing Anyrun...");
         process::exit(1)
     });
 
@@ -131,10 +133,9 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
                         title: RString::from(
                             de.name::<&str>(&[]).unwrap_or("Desktop Entry".into()),
                         ),
-                        description: config
-                            .show_descriptions()
-                            .then(|| RString::from(de.comment::<&str>(&[]).unwrap_or_default()))
-                            .map_or(RNone, RSome),
+                        description: RSome(RString::from(
+                            de.comment::<&str>(&[]).unwrap_or_default(),
+                        )),
                         use_pango: false,
                         icon: RSome(RString::from(
                             de.icon().unwrap_or("application-x-executable"),
@@ -154,10 +155,9 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
                             title: RString::from(
                                 de.name::<&str>(&[]).unwrap_or("Desktop Entry".into()),
                             ),
-                            description: config
-                                .show_descriptions()
-                                .then(|| RString::from(de.comment::<&str>(&[]).unwrap_or_default()))
-                                .map_or(RNone, RSome),
+                            description: RSome(RString::from(
+                                de.comment::<&str>(&[]).unwrap_or_default(),
+                            )),
                             use_pango: false,
                             icon: RSome(RString::from(
                                 de.icon().unwrap_or("application-x-executable"),
@@ -189,10 +189,7 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
             .take(config.max_entries())
             .map(|(_, de)| Match {
                 title: RString::from(de.name::<&str>(&[]).unwrap_or("Desktop Entry".into())),
-                description: config
-                    .show_descriptions()
-                    .then(|| RString::from(de.comment::<&str>(&[]).unwrap_or_default()))
-                    .map_or(RNone, RSome),
+                description: RSome(RString::from(de.comment::<&str>(&[]).unwrap_or_default())),
                 use_pango: false,
                 icon: RSome(RString::from(de.icon().unwrap_or_default())),
                 id: RNone,
@@ -202,7 +199,7 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
 
 #[handler]
 pub fn handler(selection: Match, data: &InitData) -> HandleResult {
-    let InitData { config, entries } = data;
+    let InitData { config: _, entries } = data;
     // It is safe to unwrap the ".find()" method because there is no way selection is not in the "entries" vector:
     let selected_de = entries
         .into_iter()
@@ -212,22 +209,24 @@ pub fn handler(selection: Match, data: &InitData) -> HandleResult {
     let exec = match selected_de.parse_exec() {
         Ok(v) => v.join(" "),
         Err(e) => {
-            eprintln!("Failed while parsing exec from selected Desktop Entry: {e}.");
+            eprintln!("(Applications) Failed while parsing exec from selected Desktop Entry. Closing...\n  {e}.");
             return HandleResult::Close;
         }
     };
-
-    if selected_de.terminal() {
-        if let Err(e) = Command::new(config.terminal()).args(["-e", &exec]).spawn() {
-            eprintln!(
-                "Failed while executing Desktop Entry's exec using the terminal emulator: {e}."
-            )
-        }
-    } else {
-        if let Err(e) = Command::new(config.shell()).args(["-c", &exec]).spawn() {
-            eprintln!("Failed while executing Desktop Entry's exec using the shell: {e}.")
-        }
-    }
+    
+    println!("LOL THIS IS APPLICATIONS → {exec}");
+    
+    // if selected_de.terminal() {
+    //     if let Err(e) = Command::new().args(["-e", &exec]).spawn() {
+    //         eprintln!(
+    //             "(Applications) Failed while executing Desktop Entry's exec using the terminal emulator:\n  {e}"
+    //         )
+    //     }
+    // } else {
+    //     if let Err(e) = Command::new(config.shell()).args(["-c", &exec]).spawn() {
+    //         eprintln!("(Applications) Failed while executing Desktop Entry's exec using the shell:\n  {e}")
+    //     }
+    // }
 
     HandleResult::Close
 }

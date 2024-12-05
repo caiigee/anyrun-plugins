@@ -1,5 +1,4 @@
 // PIMP 1.
-
 use abi_stable::std_types::{
     ROption::{self, RNone, RSome},
     RString, RVec,
@@ -21,13 +20,13 @@ struct Config {
 // QoL methods so I don't have to chain methods that much:
 impl Config {
     fn prefix(&self) -> &str {
-        self.prefix.as_deref().unwrap_or("$ ")
+        self.prefix.as_deref().unwrap_or("$")
     }
 
     fn shell(&self) -> String {
         self.shell.clone().unwrap_or_else(|| {
             env::var("SHELL").unwrap_or_else(|e| {
-                eprintln!("Failed while finding the SHELL env variable: {e:?}");
+                eprintln!("Failed while finding the SHELL env variable: {e}");
                 process::exit(1);
             })
         })
@@ -37,7 +36,7 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         let shell = env::var("SHELL").unwrap_or_else(|e| {
-            eprintln!("Failed while finding the SHELL env variable: {e:?}");
+            eprintln!("Failed while finding the SHELL env variable: {e}");
             process::exit(1);
         });
         Config {

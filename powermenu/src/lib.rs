@@ -1,6 +1,6 @@
 use abi_stable::std_types::{RNone, RSome, RString, RVec};
 use anyrun_plugin::*;
-use common::Bib;
+use common::types::Bib;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use serde::Deserialize;
 use std::{fs, process::Command};
@@ -68,11 +68,11 @@ const MENU_OPTIONS: &[MenuOption] = &[
 fn init(config_dir: RString) -> Config {
     match fs::read_to_string(format!("{config_dir}/powermenu.ron")) {
         Ok(content) => ron::from_str(&content).unwrap_or_else(|e| {
-            eprintln!("Failed while parsing powermenu config: {e:?}. Falling back to default...");
+            eprintln!("Failed while parsing powermenu config: {e}. Falling back to default...");
             Config::default()
         }),
         Err(e) => {
-            eprintln!("Failed while reading powermenu config: {e:?}. Falling back to default.");
+            eprintln!("Failed while reading powermenu config: {e}. Falling back to default.");
             Config::default()
         }
     }
@@ -163,7 +163,7 @@ fn handler(selection: Match) -> HandleResult {
         .arg(selected_option.arg)
         .output()
     {
-        eprintln!("Failed while executing powermenu command: {e:?}");
+        eprintln!("Failed while executing powermenu command: {e}");
     }
 
     HandleResult::Close

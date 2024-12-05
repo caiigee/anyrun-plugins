@@ -7,7 +7,7 @@ pub fn scrape_desktop_entries<'a>() -> Result<Vec<DesktopEntry<'a>>, Box<dyn Err
     let user_apps_path = match env::var("XDG_DATA_HOME") {
         Ok(v) => format!("{v}/applications"),
         Err(e) => {
-            eprintln!("Failed while getting XDG_DATA_HOME env variable: {e:?}. Using '~/.local/share/applications' as 'user_apps_path'...");
+            eprintln!("Failed while getting XDG_DATA_HOME env variable: {e}. Using '~/.local/share/applications' as 'user_apps_path'...");
             env::var("HOME")
                 .map(|v| format!("{v}/.local/share/applications"))
                 .unwrap_or("".to_string())
@@ -27,7 +27,7 @@ pub fn scrape_desktop_entries<'a>() -> Result<Vec<DesktopEntry<'a>>, Box<dyn Err
                 // Only "/applications" directories can have Desktop Entries, so we have to read those directories:
                 fs::read_dir(format!("{dirpath}/applications"))
                     .inspect_err(|e| {
-                        eprintln!("Failed while reading the directory {dirpath}: {e:?}. Skipping this directory...");
+                        eprintln!("Failed while reading the directory {dirpath}: {e}. Skipping this directory...");
                     })
                     .ok()
             })
@@ -38,7 +38,7 @@ pub fn scrape_desktop_entries<'a>() -> Result<Vec<DesktopEntry<'a>>, Box<dyn Err
             .flat_map(|read_dir| {
                 read_dir.filter_map(|r| {
                     r.inspect_err(|e| {
-                        eprintln!("Failed to unwrap Result<DirEntry, Error>: {e:?}. Skipping this DirEntry...")
+                        eprintln!("Failed to unwrap Result<DirEntry, Error>: {e}. Skipping this DirEntry...")
                     })
                     .ok()
                 })
@@ -57,16 +57,16 @@ pub fn scrape_desktop_entries<'a>() -> Result<Vec<DesktopEntry<'a>>, Box<dyn Err
             })
             .collect(),
         Err(e) => {
-            eprintln!("Failed while getting XDG_DATA_DIRS: {e:?}. Trying to find Desktop Entries in '/usr/share/applications' now...");
+            eprintln!("Failed while getting XDG_DATA_DIRS: {e}. Trying to find Desktop Entries in '/usr/share/applications' now...");
 
             // "::read_dir()" can fail and if it does I decided it would be best to return from the root function.
             // That is why I use ".map_err()" and the "?" operator. I guess I could have let any error here slide,
             // but then all Desktop Entries would have to be parsed from user specific ".desktop" files, which is
             // definitely not ideal, so the better solution is to return from the function IMO:
             fs::read_dir("/usr/share/applications")
-                .map_err(|e| format!("Failed while reading the '/usr/share/applications': {e:?}"))?
+                .map_err(|e| format!("Failed while reading the '/usr/share/applications': {e}"))?
                 .filter_map(|r| {
-                    r.inspect_err(|e| eprintln!("Failed to unwrap Result<DirEntry, Error>: {e:?}")).ok()
+                    r.inspect_err(|e| eprintln!("Failed to unwrap Result<DirEntry, Error>: {e}")).ok()
                 })
                 .filter(|direntry| direntry.path().extension().is_some_and(|v| v == "desktop"))
                 .filter_map(|direntry| {
@@ -86,7 +86,7 @@ pub fn scrape_desktop_entries<'a>() -> Result<Vec<DesktopEntry<'a>>, Box<dyn Err
         .map(|read_dir| {
             read_dir
                 .filter_map(|r| {
-                    r.inspect_err(|e| eprintln!("Failed to unwrap Result<DirEntry, Error>: {e:?}. Skipping this DirEntry..."))
+                    r.inspect_err(|e| eprintln!("Failed to unwrap Result<DirEntry, Error>: {e}. Skipping this DirEntry..."))
                     .ok()
                 })
                 .filter(|direntry| {
