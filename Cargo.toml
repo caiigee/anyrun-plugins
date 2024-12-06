@@ -1,13 +1,3 @@
 [workspace]
 resolver = "2"
-members = [
-    "applications",
-    "common",
-    "powermenu",
-    "rink",
-    "shell",
-    "bookmarks",
-    "webpages",
-    "websearch",
-    "kidex",
-]
+members = [ "crates/*" ]

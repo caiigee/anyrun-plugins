@@ -24,12 +24,9 @@ impl Config {
     }
 
     fn shell(&self) -> String {
-        self.shell.clone().unwrap_or_else(|| {
-            env::var("SHELL").unwrap_or_else(|e| {
-                eprintln!("Failed while finding the SHELL env variable: {e}");
-                process::exit(1);
-            })
-        })
+        self.shell
+            .clone()
+            .unwrap_or(Config::default().shell.unwrap())
     }
 }
 
@@ -52,11 +49,11 @@ fn init(config_dir: RString) -> Config {
     match fs::read_to_string(format!("{config_dir}/shell.ron")) {
         Ok(v) => ron::from_str(&v)
             .map_err(|e| {
-                format!("Failed while parsing shell config file: {e}. Falling back to default...")
+                format!("(Shell) Failed while parsing config file. Falling back to default...\n  {e}")
             })
             .unwrap_or_default(),
         Err(e) => {
-            eprintln!("Failed while reading shell config file: {e}. Falling back to default...");
+            eprintln!("(Shell) Failed while reading config file. Falling back to default...\n  {e}");
             Config::default()
         }
     }

@@ -9,6 +9,12 @@ struct Config {
     prefix: Option<String>,
 }
 
+impl Config {
+    fn prefix(&self) -> &str {
+        &self.prefix.as_deref().unwrap_or("#")
+    }
+}
+
 impl Default for Config {
     fn default() -> Self {
         Config {
@@ -20,16 +26,15 @@ impl Default for Config {
 #[init]
 fn init(config_dir: RString) -> (rink_core::Context, Config) {
     let config = match fs::read_to_string(format!("{config_dir}/rink.ron")) {
-        Ok(v) => ron::from_str(&v).unwrap_or_else(|e| {
-            eprintln!(
-                "Failed while parsing rink config file: {e}. Falling back to default..."
-            );
-            Config::default()
-        }),
+        Ok(v) => ron::from_str(&v)
+            .map_err(|e| {
+                format!(
+                    "(Rink) Failed while parsing config file. Falling back to default...\n  {e}"
+                )
+            })
+            .unwrap_or_default(),
         Err(e) => {
-            eprintln!(
-                "Failed while reading rink config file: {e}. Falling back to default..."
-            );
+            eprintln!("(Rink) Failed while reading config file. Falling back to default...\n  {e}");
             Config::default()
         }
     };
@@ -84,11 +89,7 @@ fn get_matches(input: RString, data: &mut (rink_core::Context, Config)) -> RVec<
     }
 
     // MAIN
-    let stripped_input = match config.prefix.as_deref() {
-        // Unwrap cannot panic because of the early return above.
-        Some(v) => input.strip_prefix(v).unwrap(),
-        None => &input,
-    };
+    let stripped_input = input.strip_prefix(config.prefix()).unwrap().trim();
 
     // Early return for an empty stripped input:
     if stripped_input.is_empty() {

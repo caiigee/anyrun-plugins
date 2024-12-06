@@ -3,14 +3,14 @@ use abi_stable::std_types::{
     RString, RVec,
 };
 use anyrun_plugin::*;
-use common::types::Engine;
 use common::types::BrowserConfig;
+use common::types::Engine;
 use serde::Deserialize;
 use std::{fs, process};
 
 #[derive(Deserialize, Debug)]
 struct Config {
-    prefix: Option<String>
+    prefix: Option<String>,
 }
 
 impl Config {
@@ -22,7 +22,7 @@ impl Config {
 impl Default for Config {
     fn default() -> Self {
         Config {
-            prefix: Some(String::default())
+            prefix: Some(String::default()),
         }
     }
 }
@@ -37,12 +37,13 @@ struct InitData {
 #[init]
 fn init(config_dir: RString) -> InitData {
     let config = match fs::read_to_string(format!("{config_dir}/websearch.ron")) {
-        Ok(s) => ron::from_str(&s).unwrap_or_else(|e| {
-            eprintln!(
+        Ok(s) => ron::from_str(&s)
+            .map_err(|e| {
+                format!(
                 "(Websearch) Failed while parsing config file. Falling back to default...:\n  {e}"
-            );
-            Config::default()
-        }),
+            )
+            })
+            .unwrap_or_default(),
         Err(e) => {
             eprintln!(
                 "(Websearch) Failed while reading config file. Falling back to default...\n  {e}"
@@ -50,17 +51,19 @@ fn init(config_dir: RString) -> InitData {
             Config::default()
         }
     };
-    
+
     let browser_config = match fs::read_to_string(format!("{config_dir}/browser.ron")) {
-        Ok(s) => ron::from_str(&s).unwrap_or_else(|e| {
-            eprintln!(
-                "(Websearch) Failed while parsing browser config file. Falling back to default...\n  {e}"
-            );
-            BrowserConfig::default()
-        }),
+        Ok(s) => ron::from_str(&s)
+            .map_err(|e| {
+                format!(
+                    "(Websearch) Failed while parsing browser config file. \
+                Falling back to default...\n  {e}"
+                )
+            })
+            .unwrap_or_default(),
         Err(e) => {
             eprintln!(
-                "(Websearch) Failed while reading browser config file. Falling back to default...\n {e}"
+                "(Websearch) Failed while reading browser config file. Falling back to default...\n  {e}"
             );
             BrowserConfig::default()
         }
@@ -77,9 +80,7 @@ fn init(config_dir: RString) -> InitData {
     let engines = match default_browser.search_engines(browser_config.profile_name()) {
         Ok(engines) => engines,
         Err(e) => {
-            eprintln!(
-                "(Websearch) Failed while getting the search engines. Returning no matches...:\n  {e}"
-            );
+            eprintln!("(Websearch) Failed while getting the search engines. Closing...:\n  {e}");
             process::exit(1)
         }
     };

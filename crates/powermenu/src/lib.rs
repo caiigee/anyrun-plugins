@@ -61,18 +61,18 @@ const MENU_OPTIONS: &[MenuOption] = &[
         icon: "system-lock-screen",
         command: "loginctl",
         arg: "lock-session",
-    }
+    },
 ];
 
 #[init]
 fn init(config_dir: RString) -> Config {
     match fs::read_to_string(format!("{config_dir}/powermenu.ron")) {
         Ok(content) => ron::from_str(&content).unwrap_or_else(|e| {
-            eprintln!("Failed while parsing powermenu config: {e}. Falling back to default...");
+            eprintln!("(Powermenu) Failed while parsing config. Falling back to default...\n  {e}");
             Config::default()
         }),
         Err(e) => {
-            eprintln!("Failed while reading powermenu config: {e}. Falling back to default.");
+            eprintln!("(Powermenu) Failed while reading config. Falling back to default...\n  {e}");
             Config::default()
         }
     }
@@ -153,17 +153,17 @@ fn get_matches(input: RString, config: &Config) -> RVec<Match> {
 
 #[handler]
 fn handler(selection: Match) -> HandleResult {
-    // It is safe to unwrap here because there is no way that the selection title doesn't match at least one title from MENU_OPTIONS.
     let selected_option = MENU_OPTIONS
         .into_iter()
         .find(|option| option.title == selection.title)
+        // It is safe to unwrap here because there is no way that the selection title
+        // doesn't match at least one title from MENU_OPTIONS.
         .unwrap();
 
-    if let Err(e) = Command::new(selected_option.command)
-        .arg(selected_option.arg)
-        .output()
-    {
-        eprintln!("Failed while executing powermenu command: {e}");
+    let command = selected_option.command;
+    let arg = selected_option.arg;
+    if let Err(e) = Command::new(command).arg(arg).output() {
+        eprintln!("(Powermenu) Failed while executing \"{command} {arg}\". Closing...\n  {e}");
     }
 
     HandleResult::Close

@@ -92,18 +92,18 @@ pub fn init(config_dir: RString) -> InitData<'static> {
     let config = match fs::read_to_string(format!("{config_dir}/applications.ron")) {
         Ok(content) => ron::from_str(&content).unwrap_or_else(|e| {
             eprintln!(
-                "(Applications) Failed while parsing applications config:\n  {e} Falling back to default..."
+                "(Applications) Failed while parsing applications config. Falling back to default...:\n  {e} "
             );
             Config::default()
         }),
         Err(e) => {
-            eprintln!("(Applications) Failed while reading applications config:\n  {e} Falling back to default.");
+            eprintln!("(Applications) Failed while reading applications config.  Falling back to default...:\n  {e}");
             Config::default()
         }
     };
 
     let entries = util::scrape_desktop_entries().unwrap_or_else(|e| {
-        eprintln!("(Applications) Failed to load desktop entries:\n  {e} Crashing Anyrun...");
+        eprintln!("(Applications) Failed to load desktop entries. Closing...:\n  {e}");
         process::exit(1)
     });
 
