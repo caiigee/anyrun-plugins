@@ -49,11 +49,15 @@ fn init(config_dir: RString) -> Config {
     match fs::read_to_string(format!("{config_dir}/shell.ron")) {
         Ok(v) => ron::from_str(&v)
             .map_err(|e| {
-                format!("(Shell) Failed while parsing config file. Falling back to default...\n  {e}")
+                format!(
+                    "(Shell) Failed while parsing config file. Falling back to default...\n  {e}"
+                )
             })
             .unwrap_or_default(),
         Err(e) => {
-            eprintln!("(Shell) Failed while reading config file. Falling back to default...\n  {e}");
+            eprintln!(
+                "(Shell) Failed while reading config file. Falling back to default...\n  {e}"
+            );
             Config::default()
         }
     }

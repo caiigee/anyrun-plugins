@@ -12,3 +12,4 @@ common = { version = "0.1.0", path = "../common" }
 anyrun-plugin = { git = "https://github.com/Kirottu/anyrun" }
 serde = { version = "1.0.215", features = ["derive"] }
 ron = "0.8.1"
+workspace-hack = { version = "0.1", path = "../workspace-hack" }

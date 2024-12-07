@@ -3,8 +3,8 @@ use abi_stable::std_types::{
     RString, RVec,
 };
 use anyrun_plugin::*;
-use common::Browser;
 use common::types::BrowserConfig;
+use common::Browser;
 use serde::Deserialize;
 use std::{fs, process};
 

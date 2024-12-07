@@ -69,7 +69,7 @@ impl Default for Config {
             // terminal: Some("kitty".to_string()),
             // shell: Some(shell),
             bib: Some(Bib::None),
-            command_prefix: Some(String::default())
+            command_prefix: Some(String::default()),
         }
     }
 }
@@ -213,9 +213,9 @@ pub fn handler(selection: Match, data: &InitData) -> HandleResult {
             return HandleResult::Close;
         }
     };
-    
+
     println!("LOL THIS IS APPLICATIONS → {exec}");
-    
+
     // if selected_de.terminal() {
     //     if let Err(e) = Command::new().args(["-e", &exec]).spawn() {
     //         eprintln!(

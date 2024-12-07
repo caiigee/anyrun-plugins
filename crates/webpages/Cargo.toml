@@ -13,3 +13,4 @@ common = { version = "0.1.0", path = "../common" }
 regex = "1.11.1"
 ron = "0.8.1"
 serde = { version = "1.0.215", features = ["derive"] }
+workspace-hack = { version = "0.1", path = "../workspace-hack" }

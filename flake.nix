@@ -82,8 +82,8 @@
           fileset = lib.fileset.unions [
             ./Cargo.toml
             ./Cargo.lock
-            # (craneLib.fileset.commonCargoSources ./crates/my-common)
-            # (craneLib.fileset.commonCargoSources ./crates/my-workspace-hack)
+            (craneLib.fileset.commonCargoSources ./crates/common)
+            (craneLib.fileset.commonCargoSources ./crates/workspace-hack)
             (craneLib.fileset.commonCargoSources crate)
           ];
         };
@@ -96,22 +96,53 @@
       # Note that the cargo workspace must define `workspace.members` using wildcards,
       # otherwise, omitting a crate (like we do below) will result in errors since
       # cargo won't be able to find the sources for all members.
-      shell = craneLib.buildPackage (individualCrateArgs
-        // {
-          pname = "shell";
-          cargoExtraArgs = "--lib";
-          src = fileSetForCrate ./crates/shell;
-        });
-      powermenu = craneLib.buildPackage (individualCrateArgs
-        // {
-          pname = "powermenu";
-          cargoExtraArgs = "--lib";
-          src = fileSetForCrate ./crates/powermenu;
-        });
+      # Define a function that creates a derivation for a given crate
+      makeCrate = crateName:
+        craneLib.buildPackage (individualCrateArgs
+          // {
+            pname = crateName;
+            cargoExtraArgs = "--lib";
+            src = fileSetForCrate ./crates + "${crateName}";
+          });
+
+      # Get a list of all crate directories in the `crates` folder
+      crateNames = builtins.attrNames (builtins.readDir ./crates);
+
+      # Dynamically generate a set of derivations for all crates
+      plugins = builtins.listToAttrs (map (crateName: {
+          name = crateName;
+          value = makeCrate crateName;
+        })
+        crateNames);
+
+      # TESTING
+      mkAnyrunConfig = pkgs.writeText "config.ron" ''
+        Config(
+          x: Fraction(0.5),
+          y: Fraction(0.33),
+          width: Absolute(500),
+          height: Absolute(100),
+          plugins: [
+            "${plugins.applications}/lib/libapplications.so",
+          ]
+        )
+      '';
+
+      mkBrowserConfig = pkgs.writeText "browser.ron" ''
+        BrowserConfig(
+          command_prefix: Some("uwsm app -- ")
+        )
+      '';
+
+      anyrunConfigDir = pkgs.runCommand "anyrun-config" {} ''
+        mkdir -p $out
+        cp ${mkAnyrunConfig} $out/config.ron
+        cp ${mkBrowserConfig} $out/browser.ron
+      '';
     in {
       checks = {
         # Build the crates as part of `nix flake check` for convenience
-        inherit shell powermenu;
+        inherit plugins;
 
         # Run clippy (and deny all warnings) on the workspace source,
         # again, reusing the dependency artifacts from above.
@@ -180,16 +211,16 @@
         };
       };
 
-      packages =
-        {
-          inherit shell powermenu;
-        }
-        // lib.optionalAttrs (!pkgs.stdenv.isDarwin) {
-          my-workspace-llvm-coverage = craneLibLLvmTools.cargoLlvmCov (commonArgs
-            // {
-              inherit cargoArtifacts;
-            });
-        };
+      packages = {
+        inherit (plugins);
+        my-workspace-llvm-coverage = craneLibLLvmTools.cargoLlvmCov (commonArgs
+          // {
+            inherit cargoArtifacts;
+          });
+        test = pkgs.writeShellScriptBin "test-anyrun" ''
+          ${pkgs.anyrun}/bin/anyrun -c ${anyrunConfigDir}
+        '';
+      };
 
       devShells.default = craneLib.devShell {
         # Inherit inputs from checks.
@@ -201,7 +232,12 @@
         # Extra inputs can be added here; cargo and rustc are provided by default.
         packages = [
           pkgs.cargo-hakari
+          pkgs.rust-analyzer
         ];
+
+        shellHook = ''
+          echo "Successfully initialized development shell!"
+        '';
       };
     });
 }

@@ -140,6 +140,7 @@ dependencies = [
  "ron",
  "serde",
  "sublime_fuzzy",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -212,6 +213,7 @@ dependencies = [
  "fuzzy-matcher",
  "ron",
  "serde",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -286,6 +288,7 @@ dependencies = [
  "rusqlite",
  "serde",
  "serde_json",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -853,6 +856,7 @@ dependencies = [
  "kidex-common",
  "ron",
  "serde",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -1190,6 +1194,7 @@ dependencies = [
  "fuzzy-matcher",
  "ron",
  "serde",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -1334,6 +1339,7 @@ dependencies = [
  "rink-core",
  "ron",
  "serde",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -1503,6 +1509,7 @@ dependencies = [
  "anyrun-plugin",
  "ron",
  "serde",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -1934,6 +1941,7 @@ dependencies = [
  "regex",
  "ron",
  "serde",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -1951,6 +1959,7 @@ dependencies = [
  "common",
  "ron",
  "serde",
+ "workspace-hack",
 ]
 
 [[package]]
@@ -2131,6 +2140,23 @@ checksum = "524e57b2c537c0f9b1e69f1965311ec12182b4122e45035b1508cd24d2adadb1"
 dependencies = [
  "cfg-if",
  "windows-sys 0.48.0",
+]
+
+[[package]]
+name = "workspace-hack"
+version = "0.1.0"
+dependencies = [
+ "core_extensions",
+ "memchr",
+ "once_cell",
+ "proc-macro2",
+ "quote",
+ "regex",
+ "regex-automata",
+ "regex-syntax",
+ "serde",
+ "smallvec",
+ "syn 2.0.87",
 ]
 
 [[package]]

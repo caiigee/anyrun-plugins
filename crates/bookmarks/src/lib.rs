@@ -214,7 +214,10 @@ fn handler(selection: Match, data: &InitData) -> HandleResult {
 
     default_browser
         // Description MUST be Some, this is just how I have implemented it, that's why it is safe to .unwrap() here.
-        .open(&selection.description.unwrap(), browser_config.command_prefix())
+        .open(
+            &selection.description.unwrap(),
+            browser_config.command_prefix(),
+        )
         .unwrap_or_else(|e| eprintln!("Failed while opening URL in browser: {e}"));
 
     HandleResult::Close

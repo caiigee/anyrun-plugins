@@ -238,17 +238,17 @@ impl Browser for Firefox {
         // Skipping the 8-byte header and decompressing.
         let decompressed = lz4_flex::decompress(&buffer[8..], 10 * 1024)
             .map_err(|e| format!("Failed while decompressing mozlz4 file:\n    {e}"))?;
-        
+
         // // Parsing bytes to a String:
         // let json_str = String::from_utf8(decompressed)
         //     .map_err(|e| format!("Failed while creating String out of mozlz4 bytes:\n    {e}"))?;
-        
+
         // For some reason before the actual JSON content there are 5 characters, �#{"v, which completely
         // break the parsing to a valid UTF-8 JSON string. For that reason I have to slice away the first 5 characters.
         let json_str = &String::from_utf8_lossy(&decompressed).into_owned()[10..];
-        
+
         println!("{json_str}");
-        
+
         // Parsing the JSON string into SearchData:
         let search_data: types::SearchData = serde_json::from_str(json_str)
             .map_err(|e| format!("Failed while deserializing JSON to search_data:\n    {e}"))?;
