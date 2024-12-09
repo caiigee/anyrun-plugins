@@ -3,10 +3,33 @@ use abi_stable::std_types::{
     RString, RVec,
 };
 use anyrun_plugin::*;
-use common::types::BrowserConfig;
-use common::types::Engine;
 use serde::Deserialize;
-use std::{fs, process};
+use std::{error::Error, process};
+
+mod firefox;
+
+struct Engine {
+    name: String,
+    url: String,
+    alias: String,
+    icon: String,
+}
+
+impl Engine {
+    pub fn new(name: &str, url: &str, alias: &str, icon: &str) -> Self {
+        Engine {
+            name: name.to_string(),
+            url: url.to_string(),
+            alias: alias.to_string(),
+            icon: icon.to_string(),
+        }
+    }
+}
+
+trait SearchEngines: common::Browser {
+    // I suspect every single browser would need the profile name as a parameter...
+    fn search_engines(&self, profile_name: &str) -> Result<Vec<Engine>, Box<dyn Error>>;
+}
 
 #[derive(Deserialize, Debug)]
 struct Config {
@@ -29,66 +52,40 @@ impl Default for Config {
 
 struct InitData {
     config: Config,
-    browser_config: BrowserConfig,
-    default_browser: Box<dyn common::Browser>,
+    common_config: common::CommonConfig,
+    browser: Box<dyn SearchEngines>,
     engines: Vec<Engine>,
 }
 
 #[init]
 fn init(config_dir: RString) -> InitData {
-    let config = match fs::read_to_string(format!("{config_dir}/websearch.ron")) {
-        Ok(s) => ron::from_str(&s)
-            .map_err(|e| {
-                format!(
-                "(Websearch) Failed while parsing config file. Falling back to default...:\n  {e}"
-            )
-            })
-            .unwrap_or_default(),
-        Err(e) => {
-            eprintln!(
-                "(Websearch) Failed while reading config file. Falling back to default...\n  {e}"
-            );
-            Config::default()
-        }
-    };
+    let config = common::config(&config_dir, "Websearch");
+    let common_config = common::common_config(&config_dir, "Websearch");
 
-    let browser_config = match fs::read_to_string(format!("{config_dir}/browser.ron")) {
-        Ok(s) => ron::from_str(&s)
-            .map_err(|e| {
-                format!(
-                    "(Websearch) Failed while parsing browser config file. \
-                Falling back to default...\n  {e}"
-                )
-            })
-            .unwrap_or_default(),
-        Err(e) => {
-            eprintln!(
-                "(Websearch) Failed while reading browser config file. Falling back to default...\n  {e}"
-            );
-            BrowserConfig::default()
-        }
-    };
-
-    let default_browser = match common::get_default_browser() {
-        Ok(browser) => browser,
-        Err(e) => {
-            eprintln!("(Websearch) Failed while getting the default browser. Closing...:\n  {e}");
+    // NOTE 1
+    let browser_id = common::default_browser().unwrap_or_else(|e| {
+        eprintln!("(Websearch) Failed while getting the default browser. Closing...\n  {e}");
+        process::exit(1)
+    });
+    let browser = match browser_id.as_str() {
+        "firefox" => Box::new(common::Firefox::new()),
+        _ => {
+            eprintln!("(Websearch) Unsupported default browser! Closing...");
             process::exit(1)
         }
     };
 
-    let engines = match default_browser.search_engines(browser_config.profile_name()) {
-        Ok(engines) => engines,
-        Err(e) => {
-            eprintln!("(Websearch) Failed while getting the search engines. Closing...:\n  {e}");
+    let engines = browser
+        .search_engines(common_config.profile_name())
+        .unwrap_or_else(|e| {
+            eprintln!("(Websearch) Failed while getting engines! Closing...\n  {e}");
             process::exit(1)
-        }
-    };
+        });
 
     InitData {
         config,
-        browser_config,
-        default_browser,
+        common_config,
+        browser,
         engines,
     }
 }
@@ -105,8 +102,8 @@ fn info() -> PluginInfo {
 fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
     let InitData {
         config,
-        browser_config: _,
-        default_browser: _,
+        common_config: _,
+        browser: _,
         engines,
     } = data;
 
@@ -138,30 +135,23 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
         return RVec::new();
     }
 
-    let Some(engine) = engines.iter().find(|engine| {
-        engine
-            .defined_aliases()
-            .iter()
-            .any(|alias| stripped_input.starts_with(alias))
-    }) else {
+    // Finding the appropriate engine:
+    let Some(engine) = engines
+        .iter()
+        .find(|engine| stripped_input.starts_with(&engine.alias))
+    else {
         eprintln!("(Websearch) Failed while finding the engine with a matching alias. Returning no matches...");
         return RVec::new();
     };
 
-    // The Python coder in me took over...
-    let mut twice_stripped_input = "";
-    for alias in engine.defined_aliases() {
-        if !stripped_input.starts_with(alias) {
-            continue;
-        }
-        twice_stripped_input = stripped_input.strip_prefix(alias).unwrap().trim()
-    }
+    // Stripping the input again...
+    let stripped_input = stripped_input.strip_prefix(&engine.alias).unwrap();
 
     RVec::from(vec![Match {
-        title: RString::from(twice_stripped_input),
-        description: RSome(RString::from(format!("Search with {}", engine._name()))),
+        title: RString::from(stripped_input),
+        description: RSome(RString::from(format!("Search with {}", engine.name))),
         use_pango: false,
-        icon: RSome(RString::from(engine.icon_url())),
+        icon: RSome(RString::from(engine.icon.as_str())),
         id: RNone,
     }])
 
@@ -217,8 +207,8 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
 fn handler(selection: Match, data: &InitData) -> HandleResult {
     let InitData {
         config: _,
-        browser_config,
-        default_browser,
+        common_config,
+        browser,
         engines,
     } = data;
 
@@ -227,21 +217,14 @@ fn handler(selection: Match, data: &InitData) -> HandleResult {
     // The .unwrap() here cannot fail beacuse the engine vector must hold the element of interest.
     let engine = engines
         .iter()
-        .find(|engine| engine._name() == selected_engine_name)
+        .find(|engine| engine.name == selected_engine_name)
         .unwrap();
 
-    let params = engine._urls()[0]
-        .params()
-        .iter()
-        .map(|param| format!("{}={}", param.name(), param.value()))
-        .collect::<Vec<String>>()
-        .join("&");
-    let url = format!("{}?{}", engine._urls()[0].template(), params)
-        .replace("{searchTerms}", &selection.title);
-
-    default_browser
-        .open(&url, browser_config.command_prefix())
-        .unwrap_or_else(|e| eprintln!("(Websearch) Failed while opening URL in browser:\n  {e}"));
+    browser
+        .new_window(&engine.url, common_config.command_prefix())
+        .unwrap_or_else(|e| {
+            eprintln!("(Websearch) Failed while opening a new browser window. Closing...\n  {e}")
+        });
 
     HandleResult::Close
 }

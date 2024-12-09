@@ -13,3 +13,6 @@ anyrun-plugin = { git = "https://github.com/Kirottu/anyrun" }
 serde = { version = "1.0.215", features = ["derive"] }
 ron = "0.8.1"
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
+freedesktop-desktop-entry = "0.7.5"
+mozlz4 = "0.3.1"
+serde_json = "1.0.133"
