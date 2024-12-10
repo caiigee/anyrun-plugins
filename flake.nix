@@ -5,7 +5,8 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
 
     crane.url = "github:ipetkov/crane";
-
+    
+    # Rust toolchains:
     fenix = {
       url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -13,8 +14,11 @@
     };
 
     systems.url = "github:nix-systems/default-linux";
-    flake-utils.url = "github:numtide/flake-utils";
-    flake-utils.inputs.systems.follows = "systems";
+    
+    flake-utils = {
+      url = "github:numtide/flake-utils";
+      inputs.systems.follows = "systems";
+    };
 
     advisory-db = {
       url = "github:rustsec/advisory-db";
@@ -35,7 +39,7 @@
       pkgs = nixpkgs.legacyPackages.${system};
 
       inherit (pkgs) lib;
-
+      
       craneLib = crane.mkLib pkgs;
       src = craneLib.cleanCargoSource ./.;
 
@@ -87,28 +91,18 @@
             (craneLib.fileset.commonCargoSources crate)
           ];
         };
-
-      # Build the top-level crates of the workspace as individual derivations.
-      # This allows consumers to only depend on (and build) only what they need.
-      # Though it is possible to build the entire workspace as a single derivation,
-      # so this is left up to you on how to organize things
-      #
-      # Note that the cargo workspace must define `workspace.members` using wildcards,
-      # otherwise, omitting a crate (like we do below) will result in errors since
-      # cargo won't be able to find the sources for all members.
-      # Define a function that creates a derivation for a given crate
+    
+      crateNames = builtins.attrNames (builtins.readDir ./crates);
+      
       makeCrate = crateName:
         craneLib.buildPackage (individualCrateArgs
           // {
             pname = crateName;
             cargoExtraArgs = "--lib";
-            src = fileSetForCrate ./crates + "${crateName}";
+            src = fileSetForCrate (./crates + "/${crateName}");
           });
 
-      # Get a list of all crate directories in the `crates` folder
-      crateNames = builtins.attrNames (builtins.readDir ./crates);
 
-      # Dynamically generate a set of derivations for all crates
       plugins = builtins.listToAttrs (map (crateName: {
           name = crateName;
           value = makeCrate crateName;
@@ -122,28 +116,29 @@
           y: Fraction(0.33),
           width: Absolute(500),
           height: Absolute(100),
+          hide_plugin_info: true,
           plugins: [
+            "${plugins.bookmarks}/lib/libbookmarks.so",
             "${plugins.applications}/lib/libapplications.so",
+            "${plugins.webpages}/lib/libwebpages.so",
+            "${plugins.websearch}/lib/libwebsearch.so",
           ]
         )
       '';
 
-      mkBrowserConfig = pkgs.writeText "browser.ron" ''
+      mkBrowserConfig = pkgs.writeText "Common.ron" ''
         BrowserConfig(
-          command_prefix: Some("uwsm app -- ")
+          command_prefix: Some(["uwsm", "app", "--"])
         )
       '';
 
       anyrunConfigDir = pkgs.runCommand "anyrun-config" {} ''
         mkdir -p $out
         cp ${mkAnyrunConfig} $out/config.ron
-        cp ${mkBrowserConfig} $out/browser.ron
+        cp ${mkBrowserConfig} $out/Common.ron
       '';
     in {
       checks = {
-        # Build the crates as part of `nix flake check` for convenience
-        inherit plugins;
-
         # Run clippy (and deny all warnings) on the workspace source,
         # again, reusing the dependency artifacts from above.
         #
@@ -212,15 +207,15 @@
       };
 
       packages = {
-        inherit (plugins);
         my-workspace-llvm-coverage = craneLibLLvmTools.cargoLlvmCov (commonArgs
           // {
             inherit cargoArtifacts;
           });
         test = pkgs.writeShellScriptBin "test-anyrun" ''
+          export RUST_BACKTRACE=1
           ${pkgs.anyrun}/bin/anyrun -c ${anyrunConfigDir}
         '';
-      };
+      } // plugins;
 
       devShells.default = craneLib.devShell {
         # Inherit inputs from checks.

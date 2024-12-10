@@ -137,9 +137,7 @@ dependencies = [
  "common",
  "freedesktop-desktop-entry",
  "fuzzy-matcher",
- "ron",
  "serde",
- "sublime_fuzzy",
  "workspace-hack",
 ]
 
@@ -212,6 +210,7 @@ dependencies = [
  "common",
  "fuzzy-matcher",
  "ron",
+ "rusqlite",
  "serde",
  "workspace-hack",
 ]
@@ -221,6 +220,12 @@ name = "bumpalo"
 version = "3.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "79296716171880943b8470b5f8d03aa55eb2e645a4874bdbb28adb49162e012c"
+
+[[package]]
+name = "byteorder"
+version = "1.5.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
 
 [[package]]
 name = "bytes"
@@ -282,12 +287,8 @@ version = "0.1.0"
 dependencies = [
  "abi_stable",
  "anyrun-plugin",
- "lz4_flex",
- "regex",
  "ron",
- "rusqlite",
  "serde",
- "serde_json",
  "workspace-hack",
 ]
 
@@ -947,15 +948,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a7a70ba024b9dc04c27ea2f0c0548feb474ec5c54bba33a7f72f873a39d07b24"
 
 [[package]]
-name = "lz4_flex"
-version = "0.11.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75761162ae2b0e580d7e7c390558127e5f01b4194debd6221fd8c207fc80e3f5"
-dependencies = [
- "twox-hash",
-]
-
-[[package]]
 name = "malloc_buf"
 version = "0.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -994,6 +986,26 @@ dependencies = [
  "libc",
  "wasi",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "mozlz4"
+version = "0.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "704a68b0ab6f8a5d82b1d204feaaebfca7ad1970a870965b80e8d9c859eae3dc"
+dependencies = [
+ "byteorder",
+ "mozlz4-sys",
+]
+
+[[package]]
+name = "mozlz4-sys"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba62f8cc2e7a1be2a78cecf44fb32be906751ac45b48e2d9d844dbf3211b941e"
+dependencies = [
+ "cc",
+ "libc",
 ]
 
 [[package]]
@@ -1556,12 +1568,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a8f112729512f8e442d81f95a8a7ddf2b7c6b8a1a6f509a95864142b30cab2d3"
 
 [[package]]
-name = "static_assertions"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2eb9349b6444b326872e140eb1cf5e7c522154d69e7a0ffb0fb81c06b37543f"
-
-[[package]]
 name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1572,12 +1578,6 @@ name = "strsim"
 version = "0.11.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7da8b5736845d9f2fcb837ea5d9e2628564b3b043a70948a3f0b778838c5fb4f"
-
-[[package]]
-name = "sublime_fuzzy"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa7986063f7c0ab374407e586d7048a3d5aac94f103f751088bf398e07cd5400"
 
 [[package]]
 name = "syn"
@@ -1776,16 +1776,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e78122066b0cb818b8afd08f7ed22f7fdbc3e90815035726f0840d0d26c0747a"
 
 [[package]]
-name = "twox-hash"
-version = "1.6.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "97fee6b57c6a41524a810daee9286c02d7752c4253064d0b05472833a438f675"
-dependencies = [
- "cfg-if",
- "static_assertions",
-]
-
-[[package]]
 name = "typed-arena"
 version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1938,8 +1928,8 @@ dependencies = [
  "abi_stable",
  "anyrun-plugin",
  "common",
+ "freedesktop-desktop-entry",
  "regex",
- "ron",
  "serde",
  "workspace-hack",
 ]
@@ -1957,8 +1947,9 @@ dependencies = [
  "abi_stable",
  "anyrun-plugin",
  "common",
- "ron",
+ "mozlz4",
  "serde",
+ "serde_json",
  "workspace-hack",
 ]
 

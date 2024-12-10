@@ -10,7 +10,7 @@ crate-type = ["cdylib"]
 abi_stable = "0.11.3"
 anyrun-plugin = { git = "https://github.com/Kirottu/anyrun" }
 common = { version = "0.1.0", path = "../common" }
+freedesktop-desktop-entry = "0.7.5"
 regex = "1.11.1"
-ron = "0.8.1"
 serde = { version = "1.0.215", features = ["derive"] }
 workspace-hack = { version = "0.1", path = "../workspace-hack" }

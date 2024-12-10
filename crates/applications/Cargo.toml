@@ -13,6 +13,4 @@ common = { version = "0.1.0", path = "../common" }
 serde = { version = "1.0.210", features = ["derive"] }
 freedesktop-desktop-entry = "=0.7.5"
 fuzzy-matcher = "0.3.7"
-ron = "0.8.1"
-sublime_fuzzy = "0.7.0"
 workspace-hack = { version = "0.1", path = "../workspace-hack" }

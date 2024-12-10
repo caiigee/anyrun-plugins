@@ -3,12 +3,12 @@ use abi_stable::std_types::{
     RString, RVec,
 };
 use anyrun_plugin::*;
-use common::types::BrowserConfig;
 use common::Browser;
+use freedesktop_desktop_entry::DesktopEntry;
 use serde::Deserialize;
-use std::{fs, process};
+use std::process;
 
-pub fn is_valid_page(input: &str) -> Result<bool, regex::Error> {
+fn is_valid_page(input: &str) -> Result<bool, regex::Error> {
     // CREATING THE REGEXES
     // Domain regex:
     let domain_re =
@@ -37,7 +37,7 @@ pub fn is_valid_page(input: &str) -> Result<bool, regex::Error> {
         || about_re.is_match(input));
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct Config {
     prefix: Option<String>,
 }
@@ -59,51 +59,23 @@ impl Config {
 
 struct InitData {
     config: Config,
-    browser_config: BrowserConfig,
-    default_browser: Box<dyn Browser>,
+    common_config: common::CommonConfig,
+    browser_id: String,
 }
 
 #[init]
 fn init(config_dir: RString) -> InitData {
-    let config = match fs::read_to_string(format!("{config_dir}/bookmarks.ron")) {
-        Ok(v) => ron::from_str(&v).unwrap_or_else(|e| {
-            eprintln!(
-                "(Webpages) Failed while parsing config file. Falling back to default...\n  {e}"
-            );
-            Config::default()
-        }),
-        Err(e) => {
-            eprintln!(
-                "(Webpages) Failed while reading config file. Falling back to default...\n {e}"
-            );
-            Config::default()
-        }
-    };
-
-    let browser_config = match fs::read_to_string(format!("{config_dir}/browser.ron")) {
-        Ok(v) => ron::from_str(&v).unwrap_or_else(|e| {
-            eprintln!(
-                "(Webpages) Failed while parsing browser config file. Falling back to default...\n  {e}"
-            );
-            BrowserConfig::default()
-        }),
-        Err(e) => {
-            eprintln!(
-                "(Webpages) Failed while reading browser config file. Falling back to default...\n  {e}"
-            );
-            BrowserConfig::default()
-        }
-    };
-
-    let default_browser = common::get_default_browser().unwrap_or_else(|e| {
-        eprintln!("(Webpages) Failed while getting default browser in init. Closing...\n  {e}");
-        process::exit(1);
+    let config = common::config(&config_dir, "Webpages");
+    let common_config = common::common_config(&config_dir, "Webpages");
+    let browser_id = common::default_browser_id().unwrap_or_else(|e| {
+        eprintln!("(Websearch) Failed while getting the default browser. Closing...\n  {e}");
+        process::exit(1)
     });
 
     InitData {
         config,
-        browser_config,
-        default_browser,
+        common_config,
+        browser_id,
     }
 }
 
@@ -119,8 +91,8 @@ fn info() -> PluginInfo {
 fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
     let InitData {
         config,
-        browser_config: _,
-        default_browser,
+        common_config: _,
+        browser_id,
     } = data;
 
     // VALIDATING PLUGIN
@@ -148,15 +120,17 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
     if stripped_input.is_empty() {
         return RVec::new();
     }
+    let browser = DesktopEntry::from_appid(browser_id);
 
     RVec::from(vec![Match {
         title: RString::from(stripped_input),
-        description: RSome(RString::from(format!(
-            "Open page in {}",
-            default_browser.name()
-        ))),
+        description: RSome(RString::from(
+            browser.name::<&str>(&[]).unwrap_or("Desktop Entry".into()),
+        )),
         use_pango: false,
-        icon: RSome(RString::from(default_browser.icon())),
+        icon: RSome(RString::from(
+            browser.icon().unwrap_or("application-x-executable"),
+        )),
         id: RNone,
     }])
 }
@@ -165,13 +139,21 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
 fn handler(selection: Match, data: &InitData) -> HandleResult {
     let InitData {
         config: _,
-        browser_config,
-        default_browser,
+        common_config,
+        browser_id,
     } = data;
 
-    default_browser
-        .open(&selection.title, browser_config.command_prefix())
-        .unwrap_or_else(|e| eprintln!("(Webpages) Failed while opening URL in browser: {e}."));
+    let browser = match browser_id.as_str() {
+        "firefox" => Box::new(common::Firefox::new(common_config.browser_profile_name())),
+        _ => {
+            eprintln!("(Webpages) Unsupported default browser! Closing...");
+            process::exit(1)
+        }
+    };
+
+    browser
+        .new_window(&selection.title, common_config.prefix_args())
+        .unwrap_or_else(|e| eprintln!("(Webpages) Failed while opening URL in browser\n  {e}"));
 
     HandleResult::Close
 }

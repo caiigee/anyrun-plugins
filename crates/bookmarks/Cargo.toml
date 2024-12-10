@@ -12,5 +12,6 @@ anyrun-plugin = { git = "https://github.com/Kirottu/anyrun" }
 common = { version = "0.1.0", path = "../common" }
 fuzzy-matcher = "0.3.7"
 ron = "0.8.1"
+rusqlite = "0.32.1"
 serde = { version = "1.0.210", features = ["derive"] }
 workspace-hack = { version = "0.1", path = "../workspace-hack" }

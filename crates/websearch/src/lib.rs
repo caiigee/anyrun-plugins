@@ -4,10 +4,14 @@ use abi_stable::std_types::{
 };
 use anyrun_plugin::*;
 use serde::Deserialize;
-use std::{error::Error, process};
+use std::{
+    error::Error,
+    process::{self},
+};
 
 mod firefox;
 
+#[derive(Debug)]
 struct Engine {
     name: String,
     url: String,
@@ -63,12 +67,12 @@ fn init(config_dir: RString) -> InitData {
     let common_config = common::common_config(&config_dir, "Websearch");
 
     // NOTE 1
-    let browser_id = common::default_browser().unwrap_or_else(|e| {
+    let browser_id = common::default_browser_id().unwrap_or_else(|e| {
         eprintln!("(Websearch) Failed while getting the default browser. Closing...\n  {e}");
         process::exit(1)
     });
     let browser = match browser_id.as_str() {
-        "firefox" => Box::new(common::Firefox::new()),
+        "firefox" => Box::new(common::Firefox::new(common_config.browser_profile_name())),
         _ => {
             eprintln!("(Websearch) Unsupported default browser! Closing...");
             process::exit(1)
@@ -76,7 +80,7 @@ fn init(config_dir: RString) -> InitData {
     };
 
     let engines = browser
-        .search_engines(common_config.profile_name())
+        .search_engines(common_config.browser_profile_name())
         .unwrap_or_else(|e| {
             eprintln!("(Websearch) Failed while getting engines! Closing...\n  {e}");
             process::exit(1)
@@ -107,12 +111,83 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
         engines,
     } = data;
 
-    // VALIDATING PLUGIN
     // Early return for wrong prefix:
     if !input.starts_with(config.prefix()) {
         return RVec::new();
     };
 
+    // We can safely unwrap here because of the first early return.
+    let stripped_input = input.strip_prefix(config.prefix()).unwrap().trim();
+
+    // Handling blank input:
+    if stripped_input.is_empty() {
+        return RVec::new();
+    }
+
+    // Finding the appropriate engine:
+    let valid_engines: Vec<&Engine> = engines
+        .iter()
+        .filter(|engine| stripped_input.starts_with(&engine.alias))
+        .collect();
+
+    // I am pretty sure this is necessary in the case that a user doesn't have any engine
+    // with an emptry string alias. I mean think about it, if there is even one empty-string-alias
+    // engine, the `valid_engines` vector will never ever be empty. On the other hand however, if
+    // a user only has non-empty-string-alias engines, there is a chance that `valid_engines` will
+    // be empty. For that reason, the below code is necessary to protect the .unwrap() after the .find_map()
+    // method (see below). I think...
+    if valid_engines.is_empty() {
+        return RVec::new();
+    }
+
+    // Returning matches for all valid engines which an empty string alias:
+    if valid_engines.iter().all(|engine| engine.alias.is_empty()) {
+        let matches: Vec<Match> = valid_engines
+            .iter()
+            .map(|engine| {
+                let stripped_input = stripped_input.strip_prefix(&engine.alias).unwrap().trim();
+                let description = format!("Search with {}", &engine.name);
+                Match {
+                    title: RString::from(stripped_input),
+                    description: RSome(RString::from(description)),
+                    use_pango: false,
+                    icon: RSome(RString::from(engine.icon.as_str())),
+                    id: RNone,
+                }
+            })
+            .collect();
+        return RVec::from(matches);
+    }
+
+    // Returning the match for a specfic engine. If one engine has the alias "a" and another has the
+    // alias "ab", the valid engines vector will include both the "a" and the "ab" engine and every engine
+    // which has an empty string alias. The question now is, which engine should we pick and create a Match with?
+    // Well, my reasoning is that if a user is specifying an engine to search with using an alias, it must be that
+    // they only intend to search with that engine. That being said, out of all the valid engines only ONE has to
+    // show up as a Match. I do not have any intention of making this more complicated than it is, because of that
+    // the below code will return the Match for the first engine that has a non-empty-string alias in the iteration:
+    let matches = valid_engines
+        .iter()
+        .find_map(|engine| {
+            if engine.alias.is_empty() {
+                return None;
+            }
+            let stripped_input = stripped_input.strip_prefix(&engine.alias).unwrap().trim();
+            let description = format!("Search with {}", &engine.name);
+            Some(vec![Match {
+                title: RString::from(stripped_input),
+                description: RSome(RString::from(description)),
+                use_pango: false,
+                icon: RSome(RString::from(engine.icon.as_str())),
+                id: RNone,
+            }])
+        })
+        // There ain't no way that the .find() method doesn't find a non-empty-string alias, so that's why .unwrap() is here.
+        .unwrap();
+
+    RVec::from(matches)
+
+    // OLD CODE GARBAGE SHIT
     // // Early return for a valid page, which is something the plugin "webpages" should handle:
     // match is_valid_page(&input) {
     //     Ok(is_input_valid_page) => {
@@ -126,34 +201,16 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
     //     }
     // };
 
-    // MAIN
-    // We can safely unwrap here because of the first early return.
-    let stripped_input = input.strip_prefix(config.prefix()).unwrap().trim();
-
-    // Handling blank input:
-    if stripped_input.is_empty() {
-        return RVec::new();
-    }
-
-    // Finding the appropriate engine:
-    let Some(engine) = engines
-        .iter()
-        .find(|engine| stripped_input.starts_with(&engine.alias))
-    else {
-        eprintln!("(Websearch) Failed while finding the engine with a matching alias. Returning no matches...");
-        return RVec::new();
-    };
-
     // Stripping the input again...
-    let stripped_input = stripped_input.strip_prefix(&engine.alias).unwrap();
+    // let stripped_input = stripped_input.strip_prefix(&engine.alias).unwrap();
 
-    RVec::from(vec![Match {
-        title: RString::from(stripped_input),
-        description: RSome(RString::from(format!("Search with {}", engine.name))),
-        use_pango: false,
-        icon: RSome(RString::from(engine.icon.as_str())),
-        id: RNone,
-    }])
+    // RVec::from(vec![Match {
+    //     title: RString::from(stripped_input),
+    //     description: RSome(RString::from(format!("Search with {}", engine.name))),
+    //     use_pango: false,
+    //     icon: RSome(RString::from(engine.icon.as_str())),
+    //     id: RNone,
+    // }])
 
     // let (always_valid_engines, possibly_valid_engines): (Vec<&util::Engine>, Vec<&util::Engine>) =
     //     config
@@ -220,8 +277,9 @@ fn handler(selection: Match, data: &InitData) -> HandleResult {
         .find(|engine| engine.name == selected_engine_name)
         .unwrap();
 
+    let url = &engine.url.replace("{searchTerms}", &selection.title);
     browser
-        .new_window(&engine.url, common_config.command_prefix())
+        .new_window(url, common_config.prefix_args())
         .unwrap_or_else(|e| {
             eprintln!("(Websearch) Failed while opening a new browser window. Closing...\n  {e}")
         });

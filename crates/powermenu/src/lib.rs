@@ -1,6 +1,6 @@
 use abi_stable::std_types::{RNone, RSome, RString, RVec};
 use anyrun_plugin::*;
-use common::types::Bib;
+use common::Bib;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use serde::Deserialize;
 use std::{fs, process::Command};
