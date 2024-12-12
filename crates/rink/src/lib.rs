@@ -1,10 +1,9 @@
-use abi_stable::std_types::{ROption, RString, RVec};
+use abi_stable::std_types::{ROption::{RNone, RSome}, RString, RVec};
 use anyrun_plugin::*;
 use rink_core::{ast, date, gnu_units, CURRENCY_FILE};
 use serde::Deserialize;
-use std::fs;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct Config {
     prefix: Option<String>,
 }
@@ -23,21 +22,14 @@ impl Default for Config {
     }
 }
 
+struct InitData {
+    config: Config,
+    ctx: rink_core::Context,
+}
+
 #[init]
-fn init(config_dir: RString) -> (rink_core::Context, Config) {
-    let config = match fs::read_to_string(format!("{config_dir}/rink.ron")) {
-        Ok(v) => ron::from_str(&v)
-            .map_err(|e| {
-                format!(
-                    "(Rink) Failed while parsing config file. Falling back to default...\n  {e}"
-                )
-            })
-            .unwrap_or_default(),
-        Err(e) => {
-            eprintln!("(Rink) Failed while reading config file. Falling back to default...\n  {e}");
-            Config::default()
-        }
-    };
+fn init(config_dir: RString) -> InitData {
+    let config = common::config(&config_dir, "Rink");
 
     let mut ctx = rink_core::Context::new();
 
@@ -51,9 +43,9 @@ fn init(config_dir: RString) -> (rink_core::Context, Config) {
             Ok(mut live_defs) => {
                 currency_defs.append(&mut live_defs.defs);
             }
-            Err(why) => println!("Error parsing currency json: {}", why),
+            Err(e) => eprintln!("(Rink) Error while parsing currency json:\n  {e}"),
         },
-        Err(why) => println!("Error fetching up-to-date currency conversions: {}", why),
+        Err(e) => eprintln!("(Rink) Error while fetching up-to-date currency conversions:\n  {e}"),
     }
 
     currency_defs.append(&mut gnu_units::parse_str(CURRENCY_FILE).defs);
@@ -64,7 +56,7 @@ fn init(config_dir: RString) -> (rink_core::Context, Config) {
     });
     ctx.load_dates(dates);
 
-    return (ctx, config);
+    InitData { config, ctx }
 }
 
 #[info]
@@ -76,15 +68,12 @@ fn info() -> PluginInfo {
 }
 
 #[get_matches]
-fn get_matches(input: RString, data: &mut (rink_core::Context, Config)) -> RVec<Match> {
+fn get_matches(input: RString, data: &mut InitData) -> RVec<Match> {
+    let InitData { config, ctx } = data;
+
     // VALIDATING PLUGIN
     // Early return when the prefix doesn't match:
-    let config = &data.1;
-    if config
-        .prefix
-        .as_deref()
-        .is_some_and(|v| !input.starts_with(&v))
-    {
+    if !input.starts_with(config.prefix()) {
         return RVec::new();
     }
 
@@ -96,7 +85,6 @@ fn get_matches(input: RString, data: &mut (rink_core::Context, Config)) -> RVec<
         return RVec::new();
     }
 
-    let ctx = &mut data.0;
     match rink_core::one_line(ctx, stripped_input) {
         Ok(result) => {
             let (title, desc) = parse_result(result);
@@ -104,11 +92,14 @@ fn get_matches(input: RString, data: &mut (rink_core::Context, Config)) -> RVec<
                 title: title.into(),
                 description: desc.map(RString::from).into(),
                 use_pango: false,
-                icon: ROption::RSome("accessories-calculator".into()),
-                id: ROption::RNone,
+                icon: RSome("accessories-calculator".into()),
+                id: RNone,
             }])
         }
-        Err(_) => RVec::new(),
+        Err(e) => {
+            eprintln!("(Rink) Failed while evaluating line. Returning no matches...\n  {e}");
+            RVec::new()
+        }
     }
 }
 
