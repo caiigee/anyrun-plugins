@@ -120,17 +120,16 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
     if stripped_input.is_empty() {
         return RVec::new();
     }
+    
+    // TODO 8.
     let browser = DesktopEntry::from_appid(browser_id);
-
+    let name = browser.name::<&str>(&[]).unwrap_or("Desktop Entry".into());
+    let icon = browser.icon().unwrap_or("application-x-executable");
     RVec::from(vec![Match {
         title: RString::from(stripped_input),
-        description: RSome(RString::from(
-            browser.name::<&str>(&[]).unwrap_or("Desktop Entry".into()),
-        )),
+        description: RSome(RString::from(format!("Open with {name}"))),
         use_pango: false,
-        icon: RSome(RString::from(
-            browser.icon().unwrap_or("application-x-executable"),
-        )),
+        icon: RSome(RString::from(icon)),
         id: RNone,
     }])
 }

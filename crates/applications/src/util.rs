@@ -3,26 +3,10 @@ use std::fs::{self};
 use std::{borrow::Cow, collections::HashMap, env, error::Error};
 
 pub fn scrape_desktop_entries<'a>() -> Result<Vec<DesktopEntry<'a>>, Box<dyn Error>> {
-    // Getting the XDG_DATA_HOME or defaulting to "~/.local/share/applications" or if that fails user specific desktop entries won't be used:
-    let user_apps_path = match env::var("XDG_DATA_HOME") {
-        Ok(v) => format!("{v}/applications"),
-        Err(e) => {
-            eprintln!(
-                "(Applications) Failed while getting XDG_DATA_HOME env variable. \
-                Using '~/.local/share/applications' as 'user_apps_path'...:\n  {e}"
-            );
-            let home = env::var("HOME")
-                .map_err(|e| format!("Failed while getting the HOME env variable:\n  {e}"))?;
-            format!("{home}/.local/share/applications")
-        }
-    };
-
     // Getting the system Desktop Entries. Our goal in this code is to get full paths of every ".desktop" file
     // and then use "DesktopEntry::from_path()" to parse the paths to Desktop Entries:
     let sys_desktop_entries: Vec<DesktopEntry> = env::var("XDG_DATA_DIRS")
-        .map_err(|e| {
-            format!("(Applications) Failed while getting XDG_DATA_DIRS env variable:\n  {e}")
-        })?
+        .map_err(|e| format!("Failed while getting XDG_DATA_DIRS env variable:\n    {e}"))?
         // XDG_DATA_DIRS outputs a long string with paths which are delimited by a ":",
         // so we have to split the string to get every dirpath individually.
         .split(":")
@@ -33,7 +17,7 @@ pub fn scrape_desktop_entries<'a>() -> Result<Vec<DesktopEntry<'a>>, Box<dyn Err
             fs::read_dir(format!("{dirpath}/applications"))
                 .inspect_err(|e| {
                     eprintln!(
-                        "(Applications) Failed while reading the directory \
+                        "(Applications) Error while reading the directory \
                     \"{dirpath}\". Skipping this directory...\n  {e}"
                     );
                 })
@@ -47,7 +31,7 @@ pub fn scrape_desktop_entries<'a>() -> Result<Vec<DesktopEntry<'a>>, Box<dyn Err
             read_dir.filter_map(|r| {
                 r.inspect_err(|e| {
                     eprintln!(
-                        "(Applications) Failed to unwrap Result<DirEntry, Error>. \
+                        "(Applications) Error while unwrapping Result<DirEntry, Error>. \
                     Skipping this DirEntry...\n  {e}"
                     )
                 })
@@ -93,6 +77,20 @@ pub fn scrape_desktop_entries<'a>() -> Result<Vec<DesktopEntry<'a>>, Box<dyn Err
     //             .ok()
     //     })
     //     .collect()
+
+    // Getting the XDG_DATA_HOME or defaulting to "~/.local/share/applications" or if that fails user specific desktop entries won't be used:
+    let user_apps_path = match env::var("XDG_DATA_HOME") {
+        Ok(v) => format!("{v}/applications"),
+        Err(e) => {
+            eprintln!(
+                "(Applications) Error while getting XDG_DATA_HOME env variable. \
+                Using '~/.local/share/applications' as 'user_apps_path'...:\n  {e}"
+            );
+            let home = env::var("HOME")
+                .map_err(|e| format!("Failed while getting the HOME env variable:\n    {e}"))?;
+            format!("{home}/.local/share/applications")
+        }
+    };
 
     // Getting the user's directory entries (filesystem entries) which can be the Desktop Entries (.desktop files) we need:
     let user_desktop_entries: Vec<DesktopEntry> = fs::read_dir(&user_apps_path)
