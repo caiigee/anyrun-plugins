@@ -77,7 +77,7 @@ fn init(config_dir: RString) -> InitData {
             eprintln!("(Websearch) Unsupported default browser! Closing...");
             process::exit(1)
         }
-    };
+    };    
 
     let engines = browser
         .search_engines(common_config.browser_profile_name())

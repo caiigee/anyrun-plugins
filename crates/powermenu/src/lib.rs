@@ -3,9 +3,9 @@ use anyrun_plugin::*;
 use common::Bib;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use serde::Deserialize;
-use std::{fs, process::Command};
+use std::process::Command;
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 struct Config {
     prefix: Option<String>,
     bib: Option<Bib>,
@@ -66,16 +66,7 @@ const MENU_OPTIONS: &[MenuOption] = &[
 
 #[init]
 fn init(config_dir: RString) -> Config {
-    match fs::read_to_string(format!("{config_dir}/powermenu.ron")) {
-        Ok(content) => ron::from_str(&content).unwrap_or_else(|e| {
-            eprintln!("(Powermenu) Failed while parsing config. Falling back to default...\n  {e}");
-            Config::default()
-        }),
-        Err(e) => {
-            eprintln!("(Powermenu) Failed while reading config. Falling back to default...\n  {e}");
-            Config::default()
-        }
-    }
+    common::config(&config_dir, "Powermenu")
 }
 
 #[info]
@@ -101,7 +92,7 @@ fn get_matches(input: RString, config: &Config) -> RVec<Match> {
     if stripped_input.is_empty() {
         match config.bib() {
             Bib::All => {
-                return RVec::from_iter(MENU_OPTIONS.into_iter().map(|menu_option| Match {
+                return RVec::from_iter(MENU_OPTIONS.iter().map(|menu_option| Match {
                     title: RString::from(menu_option.title),
                     description: RNone,
                     use_pango: false,
@@ -113,7 +104,7 @@ fn get_matches(input: RString, config: &Config) -> RVec<Match> {
             Bib::Currated(v) => {
                 return RVec::from_iter(
                     MENU_OPTIONS
-                        .into_iter()
+                        .iter()
                         .filter(|menu_option| v.contains(&menu_option.title.to_string()))
                         .map(|menu_option| Match {
                             title: RString::from(menu_option.title),
@@ -130,7 +121,7 @@ fn get_matches(input: RString, config: &Config) -> RVec<Match> {
     let matcher = SkimMatcherV2::default();
     // Performing fuzzy matching
     let mut options: Vec<(i64, &MenuOption)> = MENU_OPTIONS
-        .into_iter()
+        .iter()
         .filter_map(|menu_option| {
             let score = matcher.fuzzy_match(menu_option.title, stripped_input)?;
             Some((score, menu_option))
@@ -154,16 +145,18 @@ fn get_matches(input: RString, config: &Config) -> RVec<Match> {
 #[handler]
 fn handler(selection: Match) -> HandleResult {
     let selected_option = MENU_OPTIONS
-        .into_iter()
+        .iter()
         .find(|option| option.title == selection.title)
         // It is safe to unwrap here because there is no way that the selection title
         // doesn't match at least one title from MENU_OPTIONS.
         .unwrap();
 
-    let command = selected_option.command;
-    let arg = selected_option.arg;
-    if let Err(e) = Command::new(command).arg(arg).output() {
-        eprintln!("(Powermenu) Failed while executing \"{command} {arg}\". Closing...\n  {e}");
+    match Command::new(selected_option.command)
+        .arg(selected_option.arg)
+        .spawn()
+    {
+        Ok(_) => (),
+        Err(e) => eprintln!("(Powermenu) Failed while executing command. Closing...\n  {e}"),
     }
 
     HandleResult::Close

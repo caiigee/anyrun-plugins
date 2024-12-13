@@ -1347,6 +1347,7 @@ version = "0.1.0"
 dependencies = [
  "abi_stable",
  "anyrun-plugin",
+ "common",
  "reqwest",
  "rink-core",
  "ron",
@@ -1519,6 +1520,7 @@ version = "0.1.0"
 dependencies = [
  "abi_stable",
  "anyrun-plugin",
+ "common",
  "ron",
  "serde",
  "workspace-hack",

@@ -1,4 +1,7 @@
-use abi_stable::std_types::{ROption::{RNone, RSome}, RString, RVec};
+use abi_stable::std_types::{
+    ROption::{RNone, RSome},
+    RString, RVec,
+};
 use anyrun_plugin::*;
 use rink_core::{ast, date, gnu_units, CURRENCY_FILE};
 use serde::Deserialize;

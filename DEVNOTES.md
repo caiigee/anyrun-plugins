@@ -1,5 +1,4 @@
 # PIMPs
-1. Add multiple shells for the shell plugin, something similar to websearch, basically have a plugin prefix and then a prefix for each shell.
 2. We can use `SiteSecurityServiceState.bin` as a way to determine whether some profile is running, because that file only exists then.
 3. Maybe implement this function for non-NixOS systems using `ps` and `lsof`.
 4. Implement a function which returns the desktop entry or something like that and then handle the icon and the opening with the DE.

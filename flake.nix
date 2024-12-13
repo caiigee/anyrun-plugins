@@ -91,23 +91,12 @@
             (craneLib.fileset.commonCargoSources crate)
           ];
         };
-    
-      crateNames = builtins.attrNames (builtins.readDir ./crates);
       
-      makeCrate = crateName:
-        craneLib.buildPackage (individualCrateArgs
-          // {
-            pname = crateName;
-            cargoExtraArgs = "--lib";
-            src = fileSetForCrate (./crates + "/${crateName}");
-          });
-
-
-      plugins = builtins.listToAttrs (map (crateName: {
-          name = crateName;
-          value = makeCrate crateName;
-        })
-        crateNames);
+      plugins = craneLib.buildPackage (individualCrateArgs // {
+        pname = "anyrun-plugins";
+        cargoExtraArgs = "--lib";
+        src = fileSetForCrate ./crates;
+      });
 
       # TESTING
       mkAnyrunConfig = pkgs.writeText "config.ron" ''
@@ -118,17 +107,19 @@
           height: Absolute(100),
           hide_plugin_info: true,
           plugins: [
-            "${plugins.bookmarks}/lib/libbookmarks.so",
-            "${plugins.applications}/lib/libapplications.so",
-            "${plugins.webpages}/lib/libwebpages.so",
-            "${plugins.websearch}/lib/libwebsearch.so",
+            "${plugins}/lib/libbookmarks.so",
+            "${plugins}/lib/libapplications.so",
+            "${plugins}/lib/libwebpages.so",
+            "${plugins}/lib/libshell.so",
+            "${plugins}/lib/librink.so",
+            "${plugins}/lib/libwebsearch.so",
           ]
         )
       '';
 
       mkBrowserConfig = pkgs.writeText "Common.ron" ''
-        BrowserConfig(
-          command_prefix: Some(["uwsm", "app", "--"])
+        CommonConfig(
+          prefix_args: Some(["uwsm", "app", "--"])
         )
       '';
 
@@ -214,8 +205,10 @@
         test = pkgs.writeShellScriptBin "test-anyrun" ''
           export RUST_BACKTRACE=1
           ${pkgs.anyrun}/bin/anyrun -c ${anyrunConfigDir}
+          sleep 2.5
         '';
-      } // plugins;
+        default = plugins;
+      };
 
       devShells.default = craneLib.devShell {
         # Inherit inputs from checks.

@@ -12,3 +12,4 @@ abi_stable = "0.11.1"
 serde = "1.0.209"
 ron = "0.8.1"
 workspace-hack = { version = "0.1", path = "../workspace-hack" }
+common = { version = "0.1.0", path = "../common" }

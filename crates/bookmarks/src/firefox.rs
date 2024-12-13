@@ -31,7 +31,7 @@ fn is_firefox_running() -> Result<bool, Box<dyn Error>> {
         let comm = match fs::read_to_string(format!("/proc/{pid}/comm")) {
             Ok(v) => v,
             Err(e) => {
-                eprintln!("Failed while reading /proc/{pid}/comm file:\n    {e}");
+                eprintln!("Error while reading /proc/{pid}/comm file:\n  {e}");
                 continue;
             }
         };
@@ -49,12 +49,13 @@ impl Bookmarks for common::Firefox {
         // Early return for when the firefox profile is already running:
         let home_dir = env::var("HOME")
             .map_err(|e| format!("Failed while getting HOME env variable:\n    {e}"))?;
+        
         if is_firefox_running()? {
             let bookmarks_ron = fs::read_to_string(format!(
                 "{home_dir}/.cache/anyrun-plugins/firefox-bookmarks.ron"
             ))
             .map_err(|e| format!("Failed while reading cached bookmarks file:\n    {e}"))?;
-
+            
             let bookmarks = ron::from_str(&bookmarks_ron)
                 .map_err(|e| format!("Failed while reading cached bookmarks file:\n    {e}"))?;
 

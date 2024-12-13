@@ -116,13 +116,25 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
         bookmarks,
     } = data;
 
-    // VALIDATING PLUGIN
+    // Early return if a keyword matches:
+    if let Some(bookmark) = bookmarks
+        .iter()
+        .find(|bookmark| !bookmark.keyword.is_empty() && &input == &bookmark.keyword)
+    {
+        return RVec::from(vec![Match {
+            title: RString::from(bookmark.title.as_str()),
+            description: RSome(RString::from(bookmark.url.as_str())),
+            use_pango: false,
+            icon: RSome(RString::from("user-bookmarks-symbolic")),
+            id: RNone,
+        }]);
+    }
+
     // Early return for the wrong prefix:
     if !input.starts_with(config.prefix()) {
         return RVec::new();
     }
 
-    // MAIN
     let stripped_input = input.strip_prefix(config.prefix()).unwrap().trim();
 
     // Handling blank input:
@@ -156,19 +168,6 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
                 )
             }
         }
-    }
-
-    // Returning a specifc bookmark based on the inputed keyword:
-    if let Some(valid_bookmark) = bookmarks.iter().find(|bookmark| {
-        !bookmark.keyword.is_empty() && stripped_input.starts_with(&bookmark.keyword)
-    }) {
-        return RVec::from(vec![Match {
-            title: RString::from(valid_bookmark.title.as_str()),
-            description: RSome(RString::from(valid_bookmark.url.as_str())),
-            use_pango: false,
-            icon: RSome(RString::from("user-bookmarks-symbolic")),
-            id: RNone,
-        }]);
     }
 
     // Fuzzy matching
