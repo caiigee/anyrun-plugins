@@ -35,9 +35,9 @@ fn is_firefox_running() -> Result<bool, Box<dyn Error>> {
                 continue;
             }
         };
-
+        
         // The .trim() is necessary for some reason...
-        if comm.trim() == "firefox" {
+        if comm.trim().contains("firefox") {
             is_firefox_running = true;
         }
     }

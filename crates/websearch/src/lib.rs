@@ -124,12 +124,13 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
         return RVec::new();
     }
 
+    
     // Finding the appropriate engine:
     let valid_engines: Vec<&Engine> = engines
         .iter()
         .filter(|engine| stripped_input.starts_with(&engine.alias))
         .collect();
-
+        
     // I am pretty sure this is necessary in the case that a user doesn't have any engine
     // with an emptry string alias. I mean think about it, if there is even one empty-string-alias
     // engine, the `valid_engines` vector will never ever be empty. On the other hand however, if
@@ -139,7 +140,7 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
     if valid_engines.is_empty() {
         return RVec::new();
     }
-
+    
     // Returning matches for all valid engines which an empty string alias:
     if valid_engines.iter().all(|engine| engine.alias.is_empty()) {
         let matches: Vec<Match> = valid_engines
@@ -186,78 +187,6 @@ fn get_matches(input: RString, data: &InitData) -> RVec<Match> {
         .unwrap();
 
     RVec::from(matches)
-
-    // OLD CODE GARBAGE SHIT
-    // // Early return for a valid page, which is something the plugin "webpages" should handle:
-    // match is_valid_page(&input) {
-    //     Ok(is_input_valid_page) => {
-    //         if is_input_valid_page {
-    //             return RVec::new();
-    //         }
-    //     }
-    //     Err(e) => {
-    //         eprintln!("(Websearch) Failed while checking if input is a valid page in websearch plugin: {e}. Returning no matches...");
-    //         return RVec::new();
-    //     }
-    // };
-
-    // Stripping the input again...
-    // let stripped_input = stripped_input.strip_prefix(&engine.alias).unwrap();
-
-    // RVec::from(vec![Match {
-    //     title: RString::from(stripped_input),
-    //     description: RSome(RString::from(format!("Search with {}", engine.name))),
-    //     use_pango: false,
-    //     icon: RSome(RString::from(engine.icon.as_str())),
-    //     id: RNone,
-    // }])
-
-    // let (always_valid_engines, possibly_valid_engines): (Vec<&util::Engine>, Vec<&util::Engine>) =
-    //     config
-    //         .engines()
-    //         .into_iter()
-    //         .partition(|engine| engine.prefix.is_empty());
-
-    // let valid_engines: Vec<&util::Engine> = possibly_valid_engines
-    //     .into_iter()
-    //     .filter(|engine| stripped_input.starts_with(&engine.prefix))
-    //     .collect();
-
-    // // Early return for when more than two engines with nonblank prefixes are valid:
-    // if valid_engines.len() >= 2 {
-    //     eprintln!("Two or more nonblank engine prefixes are valid!");
-    //     return RVec::new();
-    // }
-
-    // // Returning matches with "always valid engines" if there are no valid engines with a nonblank prefix:
-    // if valid_engines.is_empty() {
-    //     return always_valid_engines
-    //         .into_iter()
-    //         .map(|engine| Match {
-    //             title: RString::from(stripped_input),
-    //             description: RSome(RString::from(format!("Search with {}", engine.name))),
-    //             use_pango: false,
-    //             icon: RSome(RString::from(engine.icon())),
-    //             id: RNone,
-    //         })
-    //         .collect();
-    // }
-
-    // // At this point it is obvious there is only one valid engine because of the earlier checks.
-    // let valid_engine = valid_engines[0];
-
-    // let twice_stripped_input = stripped_input
-    //     .strip_prefix(valid_engine.prefix.as_str())
-    //     .unwrap()
-    //     .trim();
-
-    // RVec::from(vec![Match {
-    //     title: RString::from(twice_stripped_input),
-    //     description: RSome(RString::from(format!("Search with {}", valid_engine.name))),
-    //     use_pango: false,
-    //     icon: RSome(RString::from(valid_engine.icon())),
-    //     id: RNone,
-    // }])
 }
 
 #[handler]

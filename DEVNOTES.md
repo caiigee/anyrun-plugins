@@ -3,6 +3,7 @@
 3. Maybe implement this function for non-NixOS systems using `ps` and `lsof`.
 4. Implement a function which returns the desktop entry or something like that and then handle the icon and the opening with the DE.
 5. add a browser.ron config which loads stuff like the default browser, profile name and command prefix.
+6. instead of using .cache to save bookmarks why not just get bookmarks from bookmarksbackup directory
 
 # TODO
 1. A lot of duplicate code man...

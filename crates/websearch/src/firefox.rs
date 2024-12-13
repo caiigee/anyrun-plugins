@@ -3,62 +3,6 @@ use std::{error::Error, fs::File, io::Read};
 
 use crate::{Engine, SearchEngines};
 
-// #[derive(Debug, Deserialize, Clone)]
-// pub struct ParameterData {
-//     name: String,
-//     value: String,
-// }
-
-// impl ParameterData {
-//     pub fn name(&self) -> &str {
-//         &self.name
-//     }
-//     pub fn value(&self) -> &str {
-//         &self.value
-//     }
-// }
-
-// #[derive(Debug, Deserialize, Clone)]
-// pub struct UrlData {
-//     params: Vec<ParameterData>,
-//     template: String,
-// }
-
-// impl UrlData {
-//     pub fn params(&self) -> &Vec<ParameterData> {
-//         &self.params
-//     }
-//     pub fn template(&self) -> &str {
-//         &self.template
-//     }
-// }
-
-// #[derive(Debug, Deserialize, Clone)]
-// pub struct FirefoxEngine {
-//     #[serde(rename = "_definedAliases")]
-//     defined_aliases: Vec<String>,
-
-//     #[serde(rename = "_iconURL")]
-//     icon_url: String,
-
-//     #[serde(rename = "_isAppProvided")]
-//     is_app_provided: bool,
-
-//     _name: String,
-//     _urls: Vec<UrlData>,
-// }
-
-// #[derive(Debug, Deserialize)]
-// pub struct SearchData {
-//     engines: Vec<FirefoxEngine>,
-// }
-
-// impl SearchData {
-//     pub fn engines(&self) -> &Vec<FirefoxEngine> {
-//         &self.engines
-//     }
-// }
-
 impl SearchEngines for Firefox {
     fn search_engines(&self, profile_name: &str) -> Result<Vec<Engine>, Box<dyn Error>> {
         let profile_dir = Firefox::profile_dir(profile_name)
@@ -88,11 +32,19 @@ impl SearchEngines for Firefox {
                 }
 
                 let name = engine_data["_name"].as_str()?;
-
-                let alias = engine_data["_definedAliases"]
-                    .as_array()?
-                    .first()
-                    .and_then(|v| v.as_str())
+                
+                // When the version is 10, the engines with no aliases have an empty list
+                // for "_definedAliases", but when the version is 6 the "_definedAliases" doesn't
+                // exist at all. I have no idea what determines the versions, but I hope it always just stays
+                // version 6:
+                // let alias = engine_data["_definedAliases"]
+                //     .as_array()?
+                //     .first()
+                //     .and_then(|v| v.as_str())
+                //     .unwrap_or_default();
+                let alias = engine_data
+                    .get("_definedAliases")
+                    .and_then(|v| Some(v.as_array().unwrap()[0].as_str().unwrap()))
                     .unwrap_or_default();
 
                 let icon = engine_data["_iconURL"].as_str()?;
@@ -119,44 +71,5 @@ impl SearchEngines for Firefox {
             .collect();
 
         Ok(engines)
-
-        // let data: SearchData = serde_json::from_slice(&decompressed)
-        //     .map_err(|e| format!("Failed while parsing JSON:\n    {e}"))?;
-
-        // let engines: Vec<Engine> = data
-        //     .engines()
-        //     .iter()
-        //     .filter_map(|engine| {
-        //         if engine.is_app_provided {
-        //             return None;
-        //         };
-
-        // let params = engine._urls[0]
-        //     .params
-        //     .iter()
-        //     .map(|param| format!("{}={}", param.name, param.value))
-        //     .collect::<Vec<String>>()
-        //     .join("&");
-        // let url = format!("{}?{}", engine._urls[0].template, params);
-
-        //         Some(Engine::new(
-        //             &engine._name,
-        //             &url,
-        //             &engine.defined_aliases[0],
-        //             &engine.icon_url,
-        //         ))
-        //     })
-        //     .collect();
-
-        // let default_engine_index = search_data
-        //     .engines()
-        //     .iter()
-        //     .position(|engine| engine._name() == search_data.default_engine())
-        //     .ok_or_else(|| "Could not find the default engine index from browser's search data!")?;
-
-        // // Cloning the Vec<Engine> and placing the default_engine at the start:
-        // let mut search_engines = search_data.engines().to_vec();
-
-        // search_engines.swap(0, default_engine_index);
     }
 }
