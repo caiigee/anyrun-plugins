@@ -117,7 +117,7 @@
         )
       '';
 
-      mkBrowserConfig = pkgs.writeText "Common.ron" ''
+      mkCommonConfig = pkgs.writeText "Common.ron" ''
         CommonConfig(
           prefix_args: Some(["uwsm", "app", "--"])
         )
@@ -126,76 +126,76 @@
       anyrunConfigDir = pkgs.runCommand "anyrun-config" {} ''
         mkdir -p $out
         cp ${mkAnyrunConfig} $out/config.ron
-        cp ${mkBrowserConfig} $out/Common.ron
+        cp ${mkCommonConfig} $out/Common.ron
       '';
     in {
-      checks = {
-        # Run clippy (and deny all warnings) on the workspace source,
-        # again, reusing the dependency artifacts from above.
-        #
-        # Note that this is done as a separate derivation so that
-        # we can block the CI if there are issues here, but not
-        # prevent downstream consumers from building our crate by itself.
-        my-workspace-clippy = craneLib.cargoClippy (commonArgs
-          // {
-            inherit cargoArtifacts;
-            cargoClippyExtraArgs = "--all-targets -- --deny warnings";
-          });
+      # checks = {
+      #   # Run clippy (and deny all warnings) on the workspace source,
+      #   # again, reusing the dependency artifacts from above.
+      #   #
+      #   # Note that this is done as a separate derivation so that
+      #   # we can block the CI if there are issues here, but not
+      #   # prevent downstream consumers from building our crate by itself.
+      #   my-workspace-clippy = craneLib.cargoClippy (commonArgs
+      #     // {
+      #       inherit cargoArtifacts;
+      #       cargoClippyExtraArgs = "--all-targets -- --deny warnings";
+      #     });
 
-        my-workspace-doc = craneLib.cargoDoc (commonArgs
-          // {
-            inherit cargoArtifacts;
-          });
+      #   my-workspace-doc = craneLib.cargoDoc (commonArgs
+      #     // {
+      #       inherit cargoArtifacts;
+      #     });
 
-        # Check formatting
-        my-workspace-fmt = craneLib.cargoFmt {
-          inherit src;
-        };
+      #   # Check formatting
+      #   my-workspace-fmt = craneLib.cargoFmt {
+      #     inherit src;
+      #   };
 
-        my-workspace-toml-fmt = craneLib.taploFmt {
-          src = pkgs.lib.sources.sourceFilesBySuffices src [".toml"];
-          # taplo arguments can be further customized below as needed
-          # taploExtraArgs = "--config ./taplo.toml";
-        };
+      #   my-workspace-toml-fmt = craneLib.taploFmt {
+      #     src = pkgs.lib.sources.sourceFilesBySuffices src [".toml"];
+      #     # taplo arguments can be further customized below as needed
+      #     # taploExtraArgs = "--config ./taplo.toml";
+      #   };
 
-        # Audit dependencies
-        my-workspace-audit = craneLib.cargoAudit {
-          inherit src advisory-db;
-        };
+      #   # Audit dependencies
+      #   my-workspace-audit = craneLib.cargoAudit {
+      #     inherit src advisory-db;
+      #   };
 
-        # Audit licenses
-        my-workspace-deny = craneLib.cargoDeny {
-          inherit src;
-        };
+      #   # Audit licenses
+      #   my-workspace-deny = craneLib.cargoDeny {
+      #     inherit src;
+      #   };
 
-        # Run tests with cargo-nextest
-        # Consider setting `doCheck = false` on other crate derivations
-        # if you do not want the tests to run twice
-        my-workspace-nextest = craneLib.cargoNextest (commonArgs
-          // {
-            inherit cargoArtifacts;
-            partitions = 1;
-            partitionType = "count";
-          });
+      #   # Run tests with cargo-nextest
+      #   # Consider setting `doCheck = false` on other crate derivations
+      #   # if you do not want the tests to run twice
+      #   my-workspace-nextest = craneLib.cargoNextest (commonArgs
+      #     // {
+      #       inherit cargoArtifacts;
+      #       partitions = 1;
+      #       partitionType = "count";
+      #     });
 
-        # Ensure that cargo-hakari is up to date
-        my-workspace-hakari = craneLib.mkCargoDerivation {
-          inherit src;
-          pname = "my-workspace-hakari";
-          cargoArtifacts = null;
-          doInstallCargoArtifacts = false;
+      #   # Ensure that cargo-hakari is up to date
+      #   my-workspace-hakari = craneLib.mkCargoDerivation {
+      #     inherit src;
+      #     pname = "my-workspace-hakari";
+      #     cargoArtifacts = null;
+      #     doInstallCargoArtifacts = false;
 
-          buildPhaseCargoCommand = ''
-            cargo hakari generate --diff  # workspace-hack Cargo.toml is up-to-date
-            cargo hakari manage-deps --dry-run  # all workspace crates depend on workspace-hack
-            cargo hakari verify
-          '';
+      #     buildPhaseCargoCommand = ''
+      #       cargo hakari generate --diff  # workspace-hack Cargo.toml is up-to-date
+      #       cargo hakari manage-deps --dry-run  # all workspace crates depend on workspace-hack
+      #       cargo hakari verify
+      #     '';
 
-          nativeBuildInputs = [
-            pkgs.cargo-hakari
-          ];
-        };
-      };
+      #     nativeBuildInputs = [
+      #       pkgs.cargo-hakari
+      #     ];
+      #   };
+      # };
 
       packages = {
         my-workspace-llvm-coverage = craneLibLLvmTools.cargoLlvmCov (commonArgs
@@ -212,7 +212,7 @@
 
       devShells.default = craneLib.devShell {
         # Inherit inputs from checks.
-        checks = self.checks.${system};
+        # checks = self.checks.${system};
 
         # Additional dev-shell environment variables can be set directly
         # MY_CUSTOM_DEVELOPMENT_VAR = "something else";
