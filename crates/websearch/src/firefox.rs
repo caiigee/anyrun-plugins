@@ -33,22 +33,11 @@ impl SearchEngines for Firefox {
                 }
 
                 let name = engine_data["_name"].as_str()?;
-
-                // When the version is 10, the engines with no aliases have an empty list
-                // for "_definedAliases", but when the version is 6 the "_definedAliases" doesn't
-                // exist at all. I have no idea what determines the versions:
-                let alias = if data["version"].as_number()? == &Number::from(11) {
-                    engine_data["_definedAliases"]
-                        .as_array()?
-                        .first()
-                        .and_then(|v| v.as_str())
-                        .unwrap_or_default()
-                } else {
-                    engine_data
-                        .get("_definedAliases")
-                        .and_then(|v| v.as_array().unwrap()[0].as_str())
-                        .unwrap_or_default()
-                };
+                let alias = engine_data["_definedAliases"]
+                    .as_array()?
+                    .first()
+                    .and_then(|v| v.as_str())
+                    .unwrap_or_default();
 
                 let icon = engine_data["_iconURL"].as_str()?;
                 // Removing the scheme.
