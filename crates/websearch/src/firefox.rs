@@ -33,15 +33,22 @@ impl SearchEngines for Firefox {
                 }
 
                 let name = engine_data["_name"].as_str()?;
-                let alias = engine_data["_definedAliases"]
-                    .as_array()?
-                    .first()
-                    .and_then(|v| v.as_str())
-                    .unwrap_or_default();
+                let alias = if data["version"].as_number()? == &Number::from(6) {
+                    engine_data
+                        .get("_definedAliases")
+                        .and_then(|v| v.as_array().unwrap()[0].as_str())
+                        .unwrap_or_default()
+                } else {
+                    engine_data["_definedAliases"]
+                        .as_array()?
+                        .first()
+                        .and_then(|v| v.as_str())
+                        .unwrap_or_default()
+                };
 
                 let icon = engine_data["_iconURL"].as_str()?;
                 // Removing the scheme.
-                let icon = &icon[icon.find("://").unwrap() + 3..];
+                // let icon = &icon[icon.find("://").unwrap() + 3..];
 
                 let url_data = &engine_data["_urls"].as_array()?[0];
                 let params = url_data["params"]

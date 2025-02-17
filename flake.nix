@@ -27,12 +27,10 @@
   };
 
   outputs = {
-    self,
     nixpkgs,
     crane,
     fenix,
     flake-utils,
-    advisory-db,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (system: let
