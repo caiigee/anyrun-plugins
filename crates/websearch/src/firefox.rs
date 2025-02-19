@@ -46,10 +46,6 @@ impl SearchEngines for Firefox {
                         .unwrap_or_default()
                 };
 
-                let icon = engine_data["_iconURL"].as_str()?;
-                // Removing the scheme.
-                // let icon = &icon[icon.find("://").unwrap() + 3..];
-
                 let url_data = &engine_data["_urls"].as_array()?[0];
                 let params = url_data["params"]
                     .as_array()?
@@ -65,7 +61,7 @@ impl SearchEngines for Firefox {
 
                 let url = format!("{template}?{params}");
 
-                Some(Engine::new(name, &url, alias, icon))
+                Some(Engine::new(name, &url, alias, ""))
             })
             .collect();
 
